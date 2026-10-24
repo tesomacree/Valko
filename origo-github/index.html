@@ -1,0 +1,2796 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Origo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Literata:opsz,wght@7..72,500;7..72,700&family=Nunito:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: graph-paper ground; top bar, left rail (lesson + tools), one working panel. Teacher view swaps the panel for a live class roster. */
+:root{
+  --paper:#f4f7fb; --surface:#ffffff; --sunk:#eef2f8; --ink:#16213d; --muted:#5a6580; --line:#dbe2ee;
+  --grid:rgba(40,70,150,.07); --accent:#2643c4; --accent-ink:#ffffff; --accent-soft:#e6ebfb;
+  --mark:#f2b705; --ok:#1d8048; --ok-soft:#e3f3ea; --warn:#a86a0b; --warn-soft:#fbf0dc; --bad:#c42f39; --bad-soft:#fbe5e6;
+  --shadow:rgba(10,20,50,.18);
+  --f-display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e1423; --surface:#151d30; --sunk:#111829; --ink:#e5eaf5; --muted:#97a2ba; --line:#26314a;
+  --grid:rgba(140,170,255,.05); --accent:#7f99ff; --accent-ink:#0e1423; --accent-soft:#1d2a4f;
+  --mark:#f2c94c; --ok:#52c587; --ok-soft:#14301f; --warn:#e3a94d; --warn-soft:#33270f; --bad:#f07a80; --bad-soft:#3a1a1e; --shadow:rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1423; --surface:#151d30; --sunk:#111829; --ink:#e5eaf5; --muted:#97a2ba; --line:#26314a;
+  --grid:rgba(140,170,255,.05); --accent:#7f99ff; --accent-ink:#0e1423; --accent-soft:#1d2a4f;
+  --mark:#f2c94c; --ok:#52c587; --ok-soft:#14301f; --warn:#e3a94d; --warn-soft:#33270f; --bad:#f07a80; --bad-soft:#3a1a1e; --shadow:rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{background-color:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.2;text-wrap:balance;margin:0}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font:600 11px/1 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.sr{position:absolute;left:-9999px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:10px;max-width:1320px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:9px;font:700 21px/1 var(--f-display);letter-spacing:-.01em}
+.brand svg{width:26px;height:26px}
+.top-divider{width:1px;height:30px;background:var(--line)}
+.lesson{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.lesson b{font:600 16px/1.2 var(--f-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lesson-sub{font-size:13px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lesson-sub:empty{display:none}
+.lessontime{display:inline-flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-size:13px;font-weight:700;white-space:nowrap}
+.livedot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.lt-meta{color:var(--muted);font-weight:400}
+.lt-meta .mono{color:var(--ink)}
+.lt-clock{font-size:14px;color:var(--ink);background:var(--surface);border-radius:999px;padding:3px 10px}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font:600 13px/1 var(--f-body);border:1px solid transparent;white-space:nowrap}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.s-active{background:var(--ok-soft);color:var(--ok)}
+.s-away{background:var(--bad-soft);color:var(--bad)}
+.s-nofs{background:var(--warn-soft);color:var(--warn)}
+.s-lobby,.s-gone{background:var(--sunk);color:var(--muted);border-color:var(--line)}
+.s-gone{color:var(--bad)}
+.s-allowed{background:var(--accent-soft);color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+main{max-width:1320px;margin:0 auto;padding-block:20px 48px}
+
+/* lock bar */
+.lockbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--mark);border-radius:var(--r);padding:16px 18px;margin-bottom:18px}
+.lockbar p{margin:4px 0 0;color:var(--muted);max-width:66ch}
+.lockbar > div{flex:1;min-width:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:10px 16px;font-weight:700;border:1px solid var(--line);background:var(--surface)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:6px 11px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* student shell */
+.shell{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;align-items:start}
+.rail{display:flex;flex-direction:column;gap:3px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}
+.rail .eyebrow{padding:14px 12px 6px}
+.rail .eyebrow:first-child{padding-top:2px}
+.rail button{display:flex;align-items:center;gap:11px;text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;font-weight:700;color:var(--muted)}
+.rail button svg{width:19px;height:19px;flex:none}
+.rail button:hover{background:var(--surface);color:var(--ink)}
+.rail button[aria-current="page"]{background:var(--surface);color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
+.rail .count{margin-left:auto;font:600 12px/1 var(--f-mono);color:var(--muted);background:var(--sunk);padding:3px 7px;border-radius:999px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-height:480px;min-width:0}
+.panel-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:18px 22px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:22px}
+.panel-head p{margin:0;color:var(--muted);font-size:14px}
+.panel-head .spacer{flex:1}
+.empty{padding:40px 22px;color:var(--muted);text-align:center}
+.empty strong{display:block;color:var(--ink);font-family:var(--f-display);font-size:17px;margin-bottom:4px}
+
+/* two-pane reader (book, materials) */
+.mat{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:420px}
+.mat-list{border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:2px}
+.mat-topic{padding:12px 10px 4px}
+.mat-list button{border:0;background:none;text-align:left;padding:9px 10px;border-radius:7px;display:flex;flex-direction:column;gap:2px}
+.mat-list button:hover{background:var(--sunk)}
+.mat-list button[aria-current="true"]{background:var(--accent-soft)}
+.mat-list button b{font-weight:700;font-size:15px}
+.mat-list button span{font-size:12px;color:var(--muted)}
+.reader{padding:24px 28px;min-width:0}
+.reader h3{font-size:26px;margin-bottom:6px}
+.prose{max-width:66ch}
+.prose p,.prose ul,.prose ol{margin:0 0 .9em}
+.prose h4{font-size:18px;margin:1.2em 0 .4em}
+.prose code{font-family:var(--f-mono);font-size:.9em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.prose strong{background:linear-gradient(transparent 62%,color-mix(in srgb,var(--mark) 45%,transparent) 62%)}
+.formula{font:600 17px/1.4 var(--f-mono);background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 14px;display:inline-block;margin:0 0 .9em}
+.linkcard{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:12px;max-width:66ch}
+.linkcard a{color:var(--accent);font-weight:700;word-break:break-all}
+.linkcard small{color:var(--warn)}
+
+/* book */
+.cover{display:flex;gap:14px;align-items:center;padding:12px 10px 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.spine{width:42px;height:56px;border-radius:3px 6px 6px 3px;display:grid;place-items:center;font:700 15px/1 var(--f-display);color:var(--accent-ink);flex:none;box-shadow:inset 5px 0 0 rgba(0,0,0,.18)}
+.cover b{font-family:var(--f-display);font-size:15px;line-height:1.25}
+.cover small{display:block;color:var(--muted);font-size:12px}
+.progress{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:6px}
+.progress i{display:block;height:100%;background:var(--ok)}
+.exs{margin-top:22px;border-top:2px solid var(--ink);padding-top:12px;max-width:72ch}
+.exs h4{font-size:17px;margin-bottom:6px}
+.ex{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.ex .n{font:600 14px/1.6 var(--f-mono);color:var(--accent)}
+.ex p{margin:0}
+.ex form{grid-column:2;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.ex input{border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:var(--paper);width:180px;max-width:100%}
+.ex .fb{font-size:14px;font-weight:700}
+.ex .fb.ok{color:var(--ok)} .ex .fb.no{color:var(--bad)}
+.ex .hint{grid-column:2;color:var(--muted);font-size:13px}
+
+/* tasks */
+.tasks{padding:8px 22px 22px;display:flex;flex-direction:column;gap:22px}
+.tgroup h3{font-size:15px;margin:14px 0 8px;display:flex;gap:8px;align-items:center}
+.trow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px 0;border-top:1px solid var(--line)}
+.trow input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent)}
+.trow b{font-size:16px}
+.trow p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.trow.done b{text-decoration:line-through;color:var(--muted)}
+.due{font:600 12px/1.3 var(--f-mono);text-align:right;white-space:nowrap}
+.due small{display:block;font-weight:400;color:var(--muted)}
+.due.late{color:var(--bad)} .due.soon{color:var(--warn)}
+.chip{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:5px;background:var(--sunk);color:var(--muted)}
+.chip.t-tehtava{background:var(--accent-soft);color:var(--accent)}
+.chip.t-laksy{background:var(--warn-soft);color:var(--warn)}
+.chip.t-projekti{background:var(--ok-soft);color:var(--ok)}
+
+/* notes */
+.notes{padding:18px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.note{border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--sunk);min-width:0}
+.note h3{font-size:17px;margin-bottom:2px}
+.note .eyebrow{display:block;margin-bottom:10px}
+
+/* document */
+.toolbar{display:flex;gap:4px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.toolbar button{border:1px solid transparent;background:none;border-radius:6px;padding:5px 10px;font-size:14px;font-weight:700;min-width:34px}
+.toolbar button:hover{background:var(--surface);border-color:var(--line)}
+.toolbar .sep{width:1px;background:var(--line);margin:4px 6px}
+.page-bg{background:var(--sunk);padding:24px 16px;overflow-x:auto}
+.docpage{background:var(--surface);max-width:760px;min-height:560px;margin:0 auto;padding:48px 56px;border:1px solid var(--line);box-shadow:0 2px 10px var(--shadow);outline:none;font-size:16px;line-height:1.6}
+.docpage h2{font-size:24px;margin:.6em 0 .3em}
+.docpage h3{font-size:19px;margin:.6em 0 .3em}
+.docpage:empty::before{content:attr(data-placeholder);color:var(--muted)}
+.statusline{font:12px/1 var(--f-mono);color:var(--muted)}
+
+/* sheet */
+.sheetbar{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.sheetbar .ref{font:600 13px/1 var(--f-mono);min-width:38px}
+.sheetbar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:var(--f-mono);font-size:14px;background:var(--surface)}
+.sheetwrap{overflow:auto;max-height:560px}
+.sheet{border-collapse:collapse;font:14px/1 var(--f-mono)}
+.sheet th{background:var(--sunk);color:var(--muted);font-weight:600;font-size:12px;border:1px solid var(--line);padding:5px 0;min-width:38px;position:sticky;top:0;z-index:1}
+.sheet tbody th{position:sticky;left:0;top:auto}
+.sheet td{border:1px solid var(--line);padding:0}
+.sheet td input{border:0;background:none;width:112px;padding:7px 8px;font:inherit;font-variant-numeric:tabular-nums}
+.sheet td input.num{text-align:right}
+.sheet td input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+.sheet td input.err{color:var(--bad)}
+
+/* slides */
+.slides{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:460px}
+.thumbs{border-right:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--sunk)}
+.thumb{border:2px solid var(--line);background:var(--surface);border-radius:6px;aspect-ratio:16/9;max-width:100%;padding:8px;text-align:left;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.thumb[aria-current="true"]{border-color:var(--accent)}
+.thumb b{font:700 11px/1.2 var(--f-display);overflow:hidden}
+.thumb span{font-size:9px;color:var(--muted);overflow:hidden}
+.thumb-n{font:600 11px/1 var(--f-mono);color:var(--muted)}
+.slide-ed{padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.stage{aspect-ratio:16/9;max-width:100%;background:var(--surface);border:1px solid var(--line);box-shadow:0 2px 10px var(--shadow);border-radius:6px;padding:6% 7%;display:flex;flex-direction:column;gap:4%}
+.stage input{border:0;border-bottom:2px dashed var(--line);background:none;font:700 clamp(18px,3vw,34px)/1.15 var(--f-display);width:100%;padding:2px 0}
+.stage textarea{flex:1;border:0;background:none;resize:none;font-size:clamp(14px,1.6vw,19px);line-height:1.5;width:100%}
+.present{position:fixed;inset:0;z-index:70;background:var(--ink);color:var(--paper);display:flex;flex-direction:column;justify-content:center;padding:6vh max(8vw,env(safe-area-inset-right,0px)) 6vh max(8vw,env(safe-area-inset-left,0px));gap:3vh}
+.present h2{font-size:clamp(28px,5vw,64px)}
+.present ul{font-size:clamp(18px,2.4vw,32px);line-height:1.5;margin:0;padding-left:1.2em}
+.present .pfoot{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:12px;align-items:center;font:13px/1 var(--f-mono)}
+.present .pfoot button{background:none;border:1px solid currentColor;color:inherit;border-radius:6px;padding:6px 12px}
+
+/* chat */
+.chat{display:flex;flex-direction:column;height:min(640px,calc(100vh - 220px));min-height:420px}
+.msgs{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78ch;padding:11px 15px;border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:3px}
+.msg.assistant{align-self:flex-start;background:var(--sunk);border:1px solid var(--line);border-bottom-left-radius:3px}
+.msg.assistant .prose p:last-child{margin-bottom:0}
+.msg .thinking{color:var(--muted);font-style:italic}
+.suggest{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 12px}
+.suggest button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px}
+.suggest button:hover{border-color:var(--accent);color:var(--accent)}
+.composer{display:flex;gap:10px;padding:14px 22px;border-top:1px solid var(--line)}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--paper);height:48px}
+
+/* teacher */
+.tgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.card-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+.card-head h2{font-size:19px;flex:1}
+.card-body{padding:16px 20px}
+.live-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.field label{font-size:13px;font-weight:700;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:7px;padding:9px 11px;background:var(--paper);width:100%}
+.field textarea{min-height:90px;resize:vertical}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--sunk)}
+.stat b{display:block;font:600 28px/1 var(--f-mono)}
+.stat span{font-size:13px;color:var(--muted)}
+.stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)} .stat.ok b{color:var(--ok)}
+.roster{width:100%;border-collapse:collapse;font-size:14px}
+.roster th{text-align:left;font:600 11px/1.2 var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.roster td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+.roster tr.alert td{background:color-mix(in srgb,var(--bad-soft) 60%,transparent)}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.who img{width:28px;height:28px;border-radius:50%;flex:none}
+.bar{display:inline-block;width:54px;height:6px;border-radius:3px;background:var(--sunk);vertical-align:middle;margin-right:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+.idle{color:var(--warn)}
+.tablewrap{overflow-x:auto}
+.log{list-style:none;margin:0;padding:6px 0;max-height:460px;overflow-y:auto}
+.log li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;padding:8px 20px;font-size:14px;border-bottom:1px solid var(--line)}
+.log li time{font:12px/1.6 var(--f-mono);color:var(--muted)}
+.log li.bad span b{color:var(--bad)} .log li.ok span b{color:var(--ok)} .log li.warn span b{color:var(--warn)}
+.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.bookopt{display:flex;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:9px;padding:12px}
+.bookopt:hover{border-color:var(--accent)}
+.bookopt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.bookopt b{font-family:var(--f-display);display:block}
+.bookopt small{color:var(--muted)}
+.manage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:18px}
+.manage form{display:flex;flex-direction:column;gap:10px}
+.mlist{list-style:none;margin:14px 0 0;padding:0;border-top:1px solid var(--line)}
+.mlist li{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.mlist li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row2{display:flex;gap:10px;flex-wrap:wrap}
+.notice{font-size:13px;color:var(--muted);margin:10px 0 0}
+.alerts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 74px);z-index:40;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 32px))}
+.alert-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:8px;padding:10px 12px;box-shadow:0 8px 24px var(--shadow);display:flex;gap:10px;align-items:start;font-size:14px}
+.alert-card.warn{border-left-color:var(--warn)}
+.alert-card div{flex:1;min-width:0}
+.alert-card time{display:block;font:11px/1.4 var(--f-mono);color:var(--muted)}
+.alert-card button{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 2px}
+
+/* allowed programs */
+.allowed-rail{display:flex;flex-direction:column;gap:3px}
+.rail .railapp{display:flex;align-items:center;gap:11px;text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;font-weight:700;color:var(--muted);text-decoration:none;font-size:15px}
+.rail .railapp svg{width:17px;height:17px;flex:none}
+.rail .railapp:hover{background:var(--surface);color:var(--accent)}
+.roster .sub{display:block;font-size:12px;color:var(--muted);font-family:var(--f-body)}
+.roster .tasksdone b{font:600 15px/1.2 var(--f-mono)}
+.roster .tasksdone.all b{color:var(--ok)}
+
+/* own status, messages, modals, demo, reports */
+.mystats{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 16px;margin-bottom:18px;font-size:14px}
+.mystats b{font:600 14px/1 var(--f-mono)}
+.mystats small{color:var(--muted);margin-left:auto}
+.subinfo{padding:10px 22px;border-bottom:1px solid var(--line);background:var(--ok-soft);font-size:14px;overflow-wrap:anywhere}
+.subinfo b{color:var(--ok)}
+.modal{position:fixed;inset:0;z-index:65;display:grid;place-items:center;background:color-mix(in srgb,var(--ink) 40%,transparent);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);width:min(860px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 20px 60px var(--shadow);min-width:0}
+.modal-card .card-body{overflow:auto}
+.msgcard{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:var(--r);padding:26px;max-width:480px;width:100%;text-align:center;box-shadow:0 20px 60px var(--shadow)}
+.msgcard p{font-size:20px;margin:10px 0 18px;overflow-wrap:anywhere}
+.msgcard.look p{font:700 clamp(26px,5vw,40px)/1.2 var(--f-display)}
+.demo-note{margin:0 0 14px;padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-weight:700;font-size:14px}
+.sublist{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.subview{border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--paper);overflow:auto;max-height:360px}
+.subview table{border-collapse:collapse;font:13px/1 var(--f-mono)}
+.subview td,.subview th{border:1px solid var(--line);padding:5px 8px;text-align:right}
+.subview th{background:var(--sunk);color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:700;padding:0;text-decoration:underline;text-underline-offset:3px}
+.reports{list-style:none;margin:0;padding:0}
+.reports > li{border-bottom:1px solid var(--line);padding:10px 0}
+.reports .rhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.reports .rhead > span{flex:1;min-width:0}
+.reports .sub{color:var(--muted);font-size:13px}
+
+/* levels: presence and departures */
+.lv-good{--lv:var(--ok);--lv-soft:var(--ok-soft)}
+.lv-mid{--lv:var(--warn);--lv-soft:var(--warn-soft)}
+.lv-low{--lv:var(--bad);--lv-soft:var(--bad-soft)}
+.bar i{background:var(--lv,var(--ok))}
+.lvchip{display:inline-block;min-width:30px;text-align:center;padding:3px 8px;border-radius:999px;font:600 13px/1.2 var(--f-mono);background:var(--lv-soft,var(--sunk));color:var(--lv,var(--ink))}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{display:flex;flex-direction:column;gap:5px;padding:10px 14px;border-radius:8px;background:var(--sunk);border:1px solid var(--line);min-width:0}
+.kpi b{font:600 22px/1 var(--f-mono)}
+.kpi.big b{font-size:30px}
+.kpi small{color:var(--muted);font-size:12px}
+.kpi .bar{display:block;width:100%;margin:2px 0 0}
+.kpi.lv-good,.kpi.lv-mid,.kpi.lv-low{background:var(--lv-soft);border-color:transparent}
+.kpi.lv-good b,.kpi.lv-mid b,.kpi.lv-low b{color:var(--lv)}
+.mystats{display:block;padding:14px 16px}
+.mystats-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+
+/* conversations */
+.count.new{background:var(--accent);color:var(--accent-ink)}
+.alert-card.msg{border-left-color:var(--accent)}
+.msg.help{box-shadow:inset 0 0 0 2px var(--warn)}
+.msgmeta{display:block;font-size:11px;opacity:.75;margin-top:4px}
+.conv{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:380px}
+.convlist{list-style:none;margin:0;padding:8px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;max-height:460px;overflow-y:auto}
+.convitem{width:100%;border:0;background:none;text-align:left;padding:10px;border-radius:7px;display:flex;flex-direction:column;gap:3px}
+.convitem:hover{background:var(--sunk)}
+.convitem[aria-current="true"]{background:var(--accent-soft)}
+.convitem .crow{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.convitem .cprev{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.convitem.unread .cprev{color:var(--ink);font-weight:700}
+.convitem time{font:11px/1 var(--f-mono);color:var(--muted)}
+.thread{display:flex;flex-direction:column;min-width:0}
+.thread .msgs{max-height:400px}
+.nickrow{display:flex;gap:10px;align-items:center;padding:0 22px 14px;font-size:13px;color:var(--muted)}
+.nickrow input{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--paper);width:180px;max-width:100%}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.convflag{margin-left:6px}
+@media (max-width:900px){ .conv{grid-template-columns:minmax(0,1fr)} .convlist{border-right:0;border-bottom:1px solid var(--line);max-height:220px} }
+
+/* simpler teacher layout: tabs, collapsible course admin, roomier forms */
+.ttabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-top:18px}
+.ttabs button{flex:none}
+.ttabs button{border:0;background:none;padding:10px 16px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px;display:inline-flex;gap:8px;align-items:center}
+.ttabs button:hover{color:var(--ink)}
+.ttabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tgrid{margin-top:18px}
+.addcourse{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.addcourse summary{cursor:pointer;font-weight:700;color:var(--accent);font-size:14px;width:max-content;max-width:100%}
+.addcourse .newcourse{border-top:0;margin-top:8px;padding-top:0}
+.conn{font-size:12px;color:var(--muted)}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.card-head h2{min-width:0}
+.live-row .field{min-width:min(200px,100%)}
+.manage{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.alerts{top:auto;bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+.mystats .kpis{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.mystats .kpi.big b{font-size:24px}
+.convitem .crow b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-head p{flex:1 1 240px;min-width:0}
+@media (max-width:1100px){ .tgrid{grid-template-columns:minmax(0,1fr)} }
+
+/* teacher course header (course is chosen in Origo, not here) */
+.coursehead{gap:12px;flex-wrap:wrap}
+.coursehead .spine{width:38px;height:50px}
+.ch-text{display:flex;flex-direction:column;min-width:0;flex:1 1 200px}
+.ch-text b{font:600 21px/1.2 var(--f-display);overflow-wrap:anywhere}
+.ch-text small{color:var(--muted);font-size:13px}
+.ch-count{color:var(--muted);font-size:13px}
+.deeplink{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-basis:100%;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--accent) 25%,transparent)}
+.deeplink code{font:12px/1.4 var(--f-mono);background:var(--surface);border-radius:6px;padding:4px 8px;overflow-wrap:anywhere;min-width:0;flex:1 1 260px}
+
+/* Origo-style class view (concept demo). It keeps Origo's light look in both themes, so it sets its own tokens. */
+html.o-open, html.o-open body{overflow:hidden}
+.oscreen{position:fixed;inset:0;z-index:30;overflow:auto;display:grid;grid-template-columns:270px minmax(0,1fr);
+  --paper:#fbfaf7;--surface:#ffffff;--sunk:#efede8;--ink:#1f1d1a;--muted:#6f6a62;--line:#e4e0d8;--accent:#1f1d1a;--accent-ink:#ffffff;--accent-soft:#ece9e2;--shadow:rgba(40,30,10,.12);
+  --o-bg:#f3f1ec;--o-panel:#fbfaf7;--o-card:#efede8;--o-row:#e9e7e2;--o-hl:#ffd84d;--o-note:#fff7d6;
+  color-scheme:light;background:var(--o-bg);color:var(--ink);font:16px/1.5 "Nunito",system-ui,sans-serif;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.o-side{display:flex;flex-direction:column;gap:4px;padding:22px 18px;min-height:100%}
+.o-logo{display:flex;align-items:center;gap:12px;background:#e9e6df;border-radius:14px;padding:14px 16px;font:600 26px/1 "Nunito",sans-serif;margin-bottom:30px}
+.o-logo svg{width:30px;height:30px;flex:none}
+.o-nav{display:flex;flex-direction:column;gap:6px}
+.o-navi{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;padding:12px;border-radius:12px;font:500 17px/1.2 "Nunito",sans-serif;color:var(--ink)}
+.o-navi svg{width:20px;height:20px;flex:none}
+.o-navi:hover{background:#ebe8e1}
+.o-navi.on{background:#e4e1da}
+.o-side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:24px}
+.o-concept{font-size:12px;line-height:1.45;color:#5b5446;background:var(--o-note);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+.o-user{display:flex;align-items:center;gap:10px;padding:8px 4px;flex-wrap:wrap}
+.o-avatar{width:44px;height:44px;border-radius:50%;background:#e4e1da;display:grid;place-items:center;font-weight:600;flex:none}
+.o-user b{display:block;font-weight:600;line-height:1.2}
+.o-user small{color:var(--muted)}
+.o-switch{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font:600 13px/1 "Nunito",sans-serif;color:var(--ink)}
+.o-main{background:var(--o-panel);margin:14px 14px 14px 0;border-radius:20px;padding:22px 30px 44px;min-width:0}
+.o-crumbs{display:flex;gap:12px;flex-wrap:wrap;align-items:center;color:#4a463e;font-size:17px}
+.o-crumbs svg{width:22px;height:22px}
+.o-crumbs b{color:var(--ink);font-weight:500}
+.o-sep{width:1px;height:22px;background:var(--line)}
+.o-badge{margin-left:auto;background:var(--o-note);color:#5b5446;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700}
+.o-h1{font:500 34px/1.2 "Literata",Georgia,serif;margin:34px 0 26px}
+.o-grid{display:grid;grid-template-columns:minmax(260px,5fr) minmax(0,9fr);gap:28px;align-items:start}
+.o-box{background:var(--o-card);border-radius:22px;padding:24px 20px;border:6px solid #f7f5f1;min-width:0}
+.o-boxhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.o-boxhead h2{font:700 22px/1.2 "Literata",Georgia,serif;margin:0}
+.o-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 16px;font:600 15px/1 "Nunito",sans-serif;color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.o-btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.o-newform{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;background:#fff;border-radius:14px;padding:14px}
+.o-list{display:flex;flex-direction:column;gap:12px;min-height:110px}
+.o-row{display:grid;grid-template-columns:92px minmax(0,1fr);gap:12px;border:0;background:none;padding:0;text-align:left;color:inherit;width:100%}
+.o-rowcard{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--o-row);border-radius:14px;padding:16px 18px;border:3px solid var(--o-panel);box-shadow:0 1px 3px var(--shadow);min-width:0}
+.o-row:hover .o-rowcard{background:#e4e2dd}
+.o-row[aria-current="true"] .o-rowcard{background:#e0ded9;box-shadow:0 0 0 2px #cfcac1}
+.o-rowcard > span:first-child{min-width:0}
+.o-rowcard b{display:block;font:500 18px/1.25 "Literata",Georgia,serif;overflow-wrap:anywhere}
+.o-rowcard small{display:block;color:var(--muted);font-size:15px}
+.o-rowcard .o-live{color:var(--ok);font:700 12px/1.4 "Nunito",sans-serif}
+.o-cnt{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:18px;color:#4a463e;flex:none}
+.o-cnt svg{width:22px;height:22px}
+.o-cover{width:92px;min-height:96px;border-radius:10px;background:#0d1117 repeating-linear-gradient(45deg,rgba(90,200,255,.14) 0 2px,transparent 2px 6px);color:#fff;display:flex;align-items:flex-end;justify-content:center;padding:8px;font:800 12px/1 "Nunito",sans-serif;border:3px solid var(--o-panel);box-shadow:0 1px 3px var(--shadow)}
+.o-cover.lg{width:62px;min-height:70px;font-size:10px}
+.o-arch{display:flex;gap:10px;align-items:center;color:#4a463e;margin-top:40px;padding-left:16px}
+.o-arch svg{width:20px;height:20px}
+.o-detail{background:var(--o-panel);border-radius:22px;padding:28px;border:6px solid #f7f5f1;box-shadow:0 1px 3px var(--shadow);min-width:0}
+.o-dhead{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.o-title{flex:1 1 180px;min-width:0}
+.o-title b{display:block;font:500 32px/1.15 "Literata",Georgia,serif;overflow-wrap:anywhere}
+.o-title small{color:var(--muted);font:500 17px/1.4 "Literata",Georgia,serif}
+.o-start{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:14px 20px;font:700 16px/1.1 "Nunito",sans-serif;box-shadow:0 0 0 4px var(--o-hl)}
+.o-start svg{width:14px;height:14px;flex:none}
+.o-start:hover{filter:brightness(1.3)}
+.o-menu{position:relative}
+.o-menu summary{list-style:none;cursor:pointer;font-size:22px;line-height:1;color:var(--muted);padding:8px 10px;border-radius:8px}
+.o-menu summary::-webkit-details-marker{display:none}
+.o-menu > div{position:absolute;right:0;top:110%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 8px 24px var(--shadow);z-index:2;min-width:220px}
+.o-menu > div button{width:100%;border:0;background:none;text-align:left;padding:10px;border-radius:7px;color:var(--bad);font:600 14px/1.3 "Nunito",sans-serif}
+.o-tabs{display:inline-flex;gap:4px;background:var(--o-card);border-radius:12px;padding:5px;margin:26px 0 22px;flex-wrap:wrap;max-width:100%}
+.o-tabs button{border:0;background:none;border-radius:9px;padding:9px 18px;font:600 17px/1.2 "Nunito",sans-serif;color:#3b372f}
+.o-tabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.o-kpis{display:flex;gap:44px;flex-wrap:wrap;margin-bottom:26px}
+.o-kpi small{display:flex;gap:8px;align-items:center;color:#4a463e;font-size:16px}
+.o-kpi small svg{width:20px;height:20px}
+.o-kpi b{display:block;font:500 34px/1.2 "Nunito",sans-serif;margin-top:6px}
+.o-table{width:100%;border-collapse:collapse}
+.o-table th{text-align:left;font:500 16px/1.2 "Nunito",sans-serif;color:#3b372f;padding:12px 16px;white-space:nowrap}
+.o-table .num{text-align:center;width:110px}
+.o-table td{padding:14px 16px;border-bottom:1px solid var(--line);font:500 17px/1.35 "Literata",Georgia,serif}
+.o-table tr.grp td{background:#ebe9e5;font-weight:700;font-size:20px}
+.o-table td.n{color:var(--muted);width:56px;font-family:"Nunito",sans-serif}
+.o-table td.small{font:500 15px/1.4 "Nunito",sans-serif;color:#4a463e}
+.o-muted{color:var(--muted)}
+.o-empty{padding:40px 10px;text-align:center;color:var(--muted)}
+.o-detail:not(.is-empty) .o-empty{display:none}
+.o-detail.is-empty .o-dhead,.o-detail.is-empty .o-tabs,.o-detail.is-empty [data-opane]{display:none}
+.oscreen .joincode{margin-top:0}
+@media (max-width:1080px){ .o-grid{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){
+  .oscreen{grid-template-columns:minmax(0,1fr)}
+  .o-side{flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px max(16px,env(safe-area-inset-left,0px));min-height:0}
+  .o-logo{margin:0;padding:10px 12px;font-size:20px}
+  .o-nav,.o-side-foot > .o-navi,.o-concept{display:none}
+  .o-side-foot{margin:0 0 0 auto;padding:0;flex-direction:row;align-items:center}
+  .o-user{padding:0}
+  .o-user > span:nth-child(2){display:none}
+  .o-main{margin:0;border-radius:0;padding:18px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+  .o-h1{margin:20px 0 16px;font-size:28px}
+  .o-title b{font-size:26px}
+  .o-detail{padding:18px}
+  .o-kpis{gap:24px}
+}
+
+/* Origo-style student view: book page + live-lesson join button */
+.oscreen{--o-pattern:radial-gradient(ellipse at 35% 45%,rgba(90,200,215,.28),transparent 55%),repeating-linear-gradient(0deg,rgba(130,225,235,.10) 0 2px,transparent 2px 9px),repeating-linear-gradient(90deg,rgba(130,225,235,.08) 0 3px,transparent 3px 11px),#07090c}
+.o-join{display:flex;flex-direction:column;gap:8px;margin:-12px 0 18px}
+.o-join:empty{display:none}
+.o-joinbtn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-radius:12px;padding:13px 14px;background:var(--ink);color:#fff;font:700 15px/1.25 "Nunito",sans-serif;box-shadow:0 0 0 4px var(--o-hl)}
+.o-joinbtn:hover{filter:brightness(1.3)}
+.o-joinbtn .dot{width:10px;height:10px;border-radius:50%;background:#4ade80;flex:none}
+.o-joinbtn small{display:block;font-weight:500;opacity:.8;font-size:12px;margin-top:2px}
+.o-hero{background:var(--o-panel);border-radius:26px;padding:10px;border:6px solid #f7f5f1;box-shadow:0 1px 3px var(--shadow);margin-top:30px}
+.o-banner{position:relative;border-radius:20px;min-height:260px;display:flex;align-items:flex-end;justify-content:center;padding:70px 24px 34px;background:var(--o-pattern);color:#fff;overflow:hidden}
+.o-banner .o-btn{position:absolute;left:16px;top:16px}
+.o-banner h1{font:800 clamp(26px,4vw,48px)/1.1 "Literata",Georgia,serif;margin:0;text-align:center;text-shadow:0 2px 14px #000;overflow-wrap:anywhere}
+.o-herobar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--o-card);border-radius:16px;padding:10px;margin-top:10px}
+.o-seg{display:flex;gap:4px;flex:1 1 260px;background:#e6e4df;border-radius:10px;padding:4px;min-width:0;flex-wrap:wrap}
+.o-seg span{display:inline-flex;gap:8px;align-items:center;padding:7px 14px;border-radius:8px;font:500 17px/1.2 "Literata",Georgia,serif;color:#4a463e}
+.o-seg span svg{width:18px;height:18px}
+.o-seg span.on{background:#fff;color:var(--ink)}
+.o-select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font:500 17px/1.2 "Literata",Georgia,serif;color:var(--ink);max-width:100%;min-width:min(220px,100%)}
+.o-joinbox{margin-top:18px;background:var(--o-card);border-radius:16px;padding:14px 18px}
+.o-joinbox .joinform{margin:0;padding:0;border:0;max-width:none;align-items:end}
+.o-joinbox .joinform .field{flex:0 1 260px}
+.o-chapters{display:flex;flex-direction:column;gap:18px;margin-top:26px}
+.o-chapter{border:0;border-radius:20px;min-height:150px;display:flex;align-items:flex-end;padding:22px 30px;text-align:left;color:#fff;background:var(--o-pattern);font:800 clamp(20px,2.6vw,32px)/1.15 "Literata",Georgia,serif;text-shadow:0 2px 10px #000;width:100%;box-shadow:0 1px 3px var(--shadow)}
+.o-chapter small{display:block;font:600 14px/1.3 "Nunito",sans-serif;opacity:.85;text-shadow:none;margin-top:6px}
+@media (max-width:760px){ .o-join{margin:0;flex-basis:100%;order:3} .o-banner{min-height:200px} }
+@media (prefers-reduced-motion:no-preference){ .o-joinbtn .dot{animation:livepulse 1.6s ease-in-out infinite} }
+
+/* demo bar: one fixed place to switch between teacher and student views; same dark look in both themes */
+:root{--demobar-h:46px}
+body{padding-top:var(--demobar-h)}
+.demobar{position:fixed;inset:0 0 auto;z-index:48;height:calc(var(--demobar-h) + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;justify-content:center;gap:12px;background:#1f1d1a;color:#ffffff;font:600 14px/1 "Nunito",system-ui,sans-serif;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.demobar-label{font:700 11px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;background:#ffd84d;color:#1f1d1a;padding:6px 8px;border-radius:5px}
+.demoseg{display:inline-flex;background:#3a3631;border-radius:9px;padding:3px}
+.demoseg button{border:0;background:none;color:#e3ded4;padding:8px 14px;border-radius:7px;font:700 14px/1 "Nunito",system-ui,sans-serif;white-space:nowrap}
+.demoseg button:hover:not(:disabled){color:#ffffff}
+.demoseg button[aria-pressed="true"]{background:#ffffff;color:#1f1d1a}
+.demoseg button:disabled{opacity:.45;cursor:not-allowed}
+.demoseg button:focus-visible{outline:2px solid #ffd84d;outline-offset:2px}
+.demobar small{color:#bdb6aa;font-weight:500;font-size:12px}
+.top{top:calc(env(safe-area-inset-top,0px) + var(--demobar-h))}
+.rail{top:calc(env(safe-area-inset-top,0px) + 76px + var(--demobar-h))}
+.oscreen{top:calc(var(--demobar-h) + env(safe-area-inset-top,0px));padding-top:0}
+#roleSeg,#oStudent,#sTeacher{display:none !important}
+@media (max-width:560px){ .demobar small{display:none} .demoseg button{padding:8px 10px;font-size:13px} .demobar-label{display:none} }
+
+/* join codes */
+.joincode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:12px 14px;border-radius:8px;background:var(--accent-soft)}
+.joincode b{font-size:22px;letter-spacing:.12em;color:var(--accent)}
+.joincode small{color:var(--muted);flex-basis:100%;font-size:13px}
+.joinform{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);max-width:520px}
+.joinform input{text-transform:uppercase;letter-spacing:.12em;font-size:18px}
+.joinerr{color:var(--bad);font-weight:700;margin:8px 0 0}
+.courseitem{display:flex;flex-direction:column;gap:4px;min-width:0}
+.courseitem .linkbtn{align-self:flex-start;font-size:12px;color:var(--muted)}
+
+/* courses */
+.coursepick{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.coursepick h2{font-size:22px;margin:6px 0 4px}
+.coursepick > p{color:var(--muted);margin:0 0 16px;max-width:62ch}
+.courses{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.courseopt{display:flex;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:9px;padding:14px}
+.courseopt:hover{border-color:var(--accent)}
+.courseopt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.courseopt b{font-family:var(--f-display);font-size:16px;display:block}
+.courseopt small{color:var(--muted);display:block}
+.courseopt small.livebadge{color:var(--ok);font-weight:700}
+.coursebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px;display:inline-flex;gap:8px;align-items:center}
+.cchip:hover{border-color:var(--accent)}
+.cchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cchip .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.cchip .mono{font-size:12px;opacity:.8}
+.newcourse{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+
+/* away overlay */
+.away{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(6px);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.away-card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--bad);border-radius:var(--r);padding:28px;max-width:460px;text-align:center;box-shadow:0 20px 60px var(--shadow)}
+.away-card h2{font-size:24px;margin:8px 0}
+.away-card p{color:var(--muted);margin:0 0 18px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;max-width:calc(100vw - 32px)}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{flex-direction:row;overflow-x:auto;position:static}
+  .rail .eyebrow{display:none}
+  .rail button{flex:none}
+  .rail .count{margin-left:4px}
+  .allowed-rail{flex-direction:row}
+  .rail .railapp{flex:none}
+  .mat,.slides{grid-template-columns:minmax(0,1fr)}
+  .mat-list{border-right:0;border-bottom:1px solid var(--line)}
+  .thumbs{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;overflow-x:auto}
+  .thumb{width:140px;flex:none}
+  .tgrid,.manage{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .docpage{padding:28px 22px}
+}
+@media (max-width:520px){
+  .reader{padding:18px}
+}
+@media (max-width:720px){
+  .top-divider{display:none}
+  .lesson{flex-basis:100%;order:3}
+  .lessontime{order:4}
+}
+@media (prefers-reduced-motion:no-preference){
+  .pill,.btn,.rail button,.bookopt{transition:background-color .15s,color .15s,border-color .15s}
+  .livedot{animation:livepulse 2s ease-in-out infinite}
+  @keyframes livepulse{50%{opacity:.35}}
+}
+</style>
+</head>
+<body>
+
+<div class="demobar" id="demoBar">
+  <span class="demobar-label">Demo</span>
+  <div class="demoseg" role="group" aria-label="Näkymä">
+    <button type="button" id="dbTeacher" aria-pressed="false">Opettajan näkymä</button>
+    <button type="button" id="dbStudent" aria-pressed="true">Opiskelijan näkymä</button>
+  </div>
+  <small id="demoBarNote">Vaihda näkymää esittelyä varten</small>
+</div>
+<header class="top">
+  <div class="top-in wrap">
+    <div class="brand">
+      <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2v22M2 13h22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13" cy="13" r="4.2" fill="var(--accent)"/><circle cx="13" cy="13" r="1.6" fill="var(--surface)"/></svg>
+      Origo
+    </div>
+    <span class="top-divider" aria-hidden="true"></span>
+    <div class="lesson">
+      <b id="lessonTitle">Valitse opintojakso</b>
+      <span class="lesson-sub" id="lessonSub"></span>
+    </div>
+    <div class="lessontime" id="lessonTime" hidden>
+      <span class="livedot" aria-hidden="true"></span>
+      <span>Tunti käynnissä</span>
+      <span class="lt-meta">alkoi <span class="mono" id="lessonStart"></span></span>
+      <span class="mono lt-clock" id="clock" aria-label="Oppitunnin kesto"></span>
+    </div>
+    <div class="top-right">
+      <span class="pill s-lobby" id="statusPill">Ei aloitettu</span>
+      <button class="btn small" id="switchCourse" type="button" hidden>← Origo</button>
+      <div class="seg" id="roleSeg" hidden>
+        <button type="button" id="roleTeacher" aria-pressed="false">Opettaja</button>
+        <button type="button" id="roleStudent" aria-pressed="true">Opiskelija</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- STUDENT -->
+  <section id="studentView">
+    <div class="coursepick" id="coursePick" hidden>
+      <span class="eyebrow">Tervetuloa Origoon</span>
+      <h2>Omat opintojaksot</h2>
+      <p>Valitse opintojakso, jonka oppitunnilla olet. Uuden opintojakson lisäät opettajalta saamallasi koodilla.</p>
+      <div class="courses" id="courseList"></div>
+    </div>
+    <div class="lockbar" id="lockbar">
+      <div>
+        <h2 style="font-size:19px">Siirry oppitunnille</h2>
+        <p>Origo avautuu koko näytölle, ja opettaja näkee, oletko paikalla. Jos vaihdat välilehteä tai ohjelmaa, opettaja saa siitä ilmoituksen.</p>
+      </div>
+      <button class="btn primary" id="enterBtn" type="button">Aloita oppitunti</button>
+    </div>
+
+    <div class="mystats" id="myStats" hidden aria-live="off"></div>
+    <div class="shell" id="studentShell">
+      <nav class="rail" aria-label="Työkalut">
+        <span class="eyebrow">Oppitunti</span>
+        <button type="button" data-view="book"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3.5h9.5a2 2 0 0 1 2 2V17H6a2 2 0 0 1-2-2z"/><path d="M4 15a2 2 0 0 1 2-2h9.5M7.5 7h5"/></svg>Oppikirja<span class="count" id="cBook">–</span></button>
+        <button type="button" data-view="materials"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h5.5a2 2 0 0 1 2 2V17a1.6 1.6 0 0 0-1.6-1.6H3zM17 4.5h-5.5a1 1 0 0 0-1 1V17a1.6 1.6 0 0 1 1.6-1.6H17z"/></svg>Materiaalit<span class="count" id="cMat">0</span></button>
+        <button type="button" data-view="tasks"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="m6.5 10 2.2 2.2 4.8-4.8"/></svg>Tehtävät<span class="count" id="cTask">0</span></button>
+        <button type="button" data-view="notes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h10v14H5zM8 7h4M8 10h4M8 13h2"/></svg>Muistiinpanot<span class="count" id="cNote">0</span></button>
+        <button type="button" data-view="viestit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14v9H7l-4 3z"/><path d="M6.5 8.5h7M6.5 11h4"/></svg>Viestit opettajalle<span class="count" id="cConv" hidden>0</span></button>
+        <span class="eyebrow">Työkalut</span>
+        <button type="button" data-view="doc"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5M7.5 10h5M7.5 13h5"/></svg>Teksti</button>
+        <button type="button" data-view="sheet"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3.5" width="14" height="13" rx="1.5"/><path d="M3 8h14M3 12.3h14M8 3.5v13"/></svg>Taulukko</button>
+        <button type="button" data-view="slides"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M10 13.5v3M7 17h6"/></svg>Esitys</button>
+        <button type="button" data-view="ai"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h12v9H9l-4 3v-3H4z"/><path d="M8 8.5h.01M12 8.5h.01" stroke-linecap="round" stroke-width="2.2"/></svg>Tekoälyapu</button>
+        <span class="eyebrow" id="allowedHead" hidden>Sallitut ohjelmat</span>
+        <div class="allowed-rail" id="allowedRail"></div>
+      </nav>
+
+      <div class="panel">
+        <div id="v-book" hidden>
+          <div class="panel-head"><h2 id="bookHead">Oppikirja</h2><p id="bookSub"></p></div>
+          <div id="bookBody"></div>
+        </div>
+        <div id="v-materials" hidden>
+          <div class="panel-head"><h2>Materiaalit</h2><p>Opettajan lisäämät oppimateriaalit aiheittain.</p></div>
+          <div id="matBody"></div>
+        </div>
+        <div id="v-tasks" hidden>
+          <div class="panel-head"><h2>Tehtävät, läksyt ja projektit</h2><p id="taskSummary"></p></div>
+          <div id="taskBody"></div>
+        </div>
+        <div id="v-notes" hidden>
+          <div class="panel-head"><h2>Opettajan muistiinpanot</h2><p>Opettajan jakamat tiivistelmät tunneilta.</p></div>
+          <div id="noteBody"></div>
+        </div>
+        <div id="v-viestit" hidden>
+          <div class="panel-head"><h2>Viestit opettajalle</h2><p>Kysy opettajalta tai pyydä apua. Viestit näkyvät vain sinulle ja opettajalle.</p></div>
+          <div class="chat">
+            <div class="msgs" id="convMsgs" aria-live="polite"></div>
+            <form class="composer" id="convForm">
+              <label for="convInput" class="sr">Viesti opettajalle</label>
+              <textarea id="convInput" placeholder="Kirjoita viesti opettajalle…" maxlength="1000"></textarea>
+              <button class="btn" type="button" id="convHelp">Pyydä apua</button>
+              <button class="btn primary" type="submit">Lähetä</button>
+            </form>
+            <div class="nickrow"><label for="convNick">Nimimerkki</label><input id="convNick" maxlength="40" placeholder="valinnainen"></div>
+          </div>
+        </div>
+        <div id="v-doc" hidden>
+          <div class="panel-head"><h2>Teksti</h2><p>Kirjoita vastauksia, esseitä ja muistiinpanoja.</p><span class="spacer"></span><span class="statusline" id="docStatus"></span><span class="statusline" data-substatus="doc"></span><button class="btn small primary" type="button" data-submit="doc">Palauta opettajalle</button></div>
+          <div class="subinfo" data-subinfo="doc" hidden></div>
+          <div class="toolbar" id="docTools">
+            <button type="button" data-cmd="bold" title="Lihavointi"><b>L</b></button>
+            <button type="button" data-cmd="italic" title="Kursiivi"><i>K</i></button>
+            <button type="button" data-cmd="underline" title="Alleviivaus"><u>A</u></button>
+            <span class="sep"></span>
+            <button type="button" data-block="h2">Otsikko</button>
+            <button type="button" data-block="h3">Väliotsikko</button>
+            <button type="button" data-block="p">Leipäteksti</button>
+            <span class="sep"></span>
+            <button type="button" data-cmd="insertUnorderedList">• Luettelo</button>
+            <button type="button" data-cmd="insertOrderedList">1. Numeroitu</button>
+            <span class="sep"></span>
+            <button type="button" data-cmd="undo" title="Kumoa">↶</button>
+            <button type="button" data-cmd="redo" title="Tee uudelleen">↷</button>
+          </div>
+          <div class="page-bg"><div class="docpage" id="docPage" contenteditable="true" spellcheck="true" data-placeholder="Aloita kirjoittaminen tähän…" aria-label="Asiakirja"></div></div>
+        </div>
+        <div id="v-sheet" hidden>
+          <div class="panel-head"><h2>Taulukko</h2><p>Kaavat alkavat =-merkillä, esim. <span class="mono">=A1*B1</span>, <span class="mono">=SUMMA(A1:A5)</span>, <span class="mono">=KESKIARVO(B1:B4)</span>.</p><span class="spacer"></span><span class="statusline" id="sheetStatus"></span><span class="statusline" data-substatus="sheet"></span><button class="btn small primary" type="button" data-submit="sheet">Palauta opettajalle</button></div>
+          <div class="subinfo" data-subinfo="sheet" hidden></div>
+          <div class="sheetbar"><span class="ref" id="sheetRef">A1</span><label for="sheetFx" class="sr">Solun sisältö</label><input id="sheetFx" placeholder="Valitse solu"><button class="btn small" id="sheetClear" type="button">Tyhjennä taulukko</button></div>
+          <div class="sheetwrap"><table class="sheet" id="sheet"></table></div>
+        </div>
+        <div id="v-slides" hidden>
+          <div class="panel-head"><h2>Esitys</h2><p>Tee diat ja esitä ne luokalle.</p><span class="spacer"></span>
+            <button class="btn small" id="slideAdd" type="button">+ Uusi dia</button>
+            <button class="btn small danger" id="slideDel" type="button">Poista dia</button>
+            <button class="btn small primary" id="slidePlay" type="button">Esitä</button>
+            <span class="statusline" data-substatus="slides"></span>
+            <button class="btn small primary" type="button" data-submit="slides">Palauta opettajalle</button>
+          </div>
+          <div class="subinfo" data-subinfo="slides" hidden></div>
+          <div class="slides">
+            <div class="thumbs" id="thumbs"></div>
+            <div class="slide-ed">
+              <div class="stage">
+                <label for="slideTitle" class="sr">Dian otsikko</label><input id="slideTitle" placeholder="Dian otsikko">
+                <label for="slideBody" class="sr">Dian sisältö</label><textarea id="slideBody" placeholder="Jokainen rivi on oma luettelokohtansa"></textarea>
+              </div>
+              <span class="statusline" id="slideStatus"></span>
+            </div>
+          </div>
+        </div>
+        <div id="v-ai" hidden>
+          <div class="panel-head"><h2>Tekoälyapu</h2><p>Osa Origoa: käyttö ei ole poistumista. Apu ohjaa ajattelemaan, se ei tee tehtäviä puolestasi.</p></div>
+          <div class="chat">
+            <div class="msgs" id="msgs" aria-live="polite"></div>
+            <div class="suggest" id="suggest">
+              <button type="button">Selitä kirjan tämänhetkinen luku yksinkertaisesti</button>
+              <button type="button">Anna minulle yksi harjoitustehtävä</button>
+              <button type="button">Miten aloitan läksyn?</button>
+            </div>
+            <form class="composer" id="chatForm">
+              <label for="chatInput" class="sr">Kysymys</label>
+              <textarea id="chatInput" placeholder="Kirjoita kysymys…" rows="1"></textarea>
+              <button class="btn primary" id="chatSend" type="submit">Kysy</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEACHER -->
+  <section id="teacherView" hidden>
+    <div class="card">
+      <div class="card-body">
+        <div class="coursebar coursehead" id="courseBar"></div>
+      </div>
+    </div>
+    <nav class="ttabs" role="tablist" aria-label="Opettajan näkymät">
+      <button type="button" role="tab" data-ttab="luokka" aria-selected="true">Luokka nyt</button>
+      <button type="button" role="tab" data-ttab="viestit" aria-selected="false">Viestit <span class="count new" id="tabConvCount" hidden>0</span></button>
+      <button type="button" role="tab" data-ttab="sisalto" aria-selected="false">Sisältö</button>
+      <button type="button" role="tab" data-ttab="raportit" aria-selected="false">Tuntiraportit</button>
+    </nav>
+    <div class="tgrid" data-tpane="luokka">
+      <div class="card">
+        <div class="card-head"><h2>Luokka nyt</h2><span class="conn" id="connInfo">Yhdistetään…</span><div class="head-actions"><button class="btn small" id="soundBtn" type="button" aria-pressed="false">Äänimerkki: pois</button><button class="btn small" id="demoBtn" type="button" aria-pressed="false">Esittelytila: pois</button></div></div>
+        <div class="card-body">
+          <p class="demo-note" id="demoNote" hidden>Esittelytila on päällä: listalla on 24 kuvitteellista opiskelijaa, joiden tilat ja tehtävät ovat simuloituja.</p>
+          <form class="live-row" id="liveForm">
+            <div class="field"><label for="liveTitle">Oppitunnin nimi</label><input id="liveTitle" placeholder="esim. MAA3 · Ryhmä 2 · Trigonometria"></div>
+            <button class="btn primary" id="liveBtn" type="submit">Aloita oppitunti</button>
+          </form>
+          <form class="live-row" id="msgForm" style="margin-top:12px">
+            <div class="field" style="flex:0 1 220px"><label for="msgTo">Viestin vastaanottaja</label><select id="msgTo"><option value="">Koko ryhmä</option></select></div>
+            <div class="field"><label for="msgText">Viesti</label><input id="msgText" maxlength="300" placeholder="esim. Palaa tehtävään 2.3"></div>
+            <button class="btn" type="submit">Lähetä</button>
+            <button class="btn" type="button" id="lookBtn">Katse tänne</button>
+          </form>
+          <div class="stats">
+            <div class="stat ok"><b id="nActive">0</b><span>Paikalla Origossa</span></div>
+            <div class="stat"><b id="nNofs">0</b><span>Sallitussa ohjelmassa</span></div>
+            <div class="stat bad"><b id="nAway">0</b><span>Poistunut</span></div>
+            <div class="stat"><b id="nLobby">0</b><span>Ei paikalla</span></div>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table class="roster">
+            <thead><tr><th>Opiskelija</th><th>Tehdyt tehtävät</th><th>Palautukset</th><th>Paikalla</th><th>Tilassa</th><th>Läsnä tunnilla</th><th>Poistumiset</th><th>Viimeksi toiminut</th></tr></thead>
+            <tbody id="rosterBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="rosterEmpty"><strong>Kukaan opiskelija ei ole vielä avannut tätä opintojaksoa</strong>Jaa tämän sivun linkki opiskelijoille. He näkyvät tässä heti, kun avaavat sen.</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Tapahtumat</h2><button class="btn small" id="clearLog" type="button">Tyhjennä</button></div>
+        <ul class="log" id="log"></ul>
+        <div class="empty" id="logEmpty" style="padding:24px 20px">Poistumiset ja paluut kirjautuvat tähän tämän oppitunnin ajalta. Saat jokaisesta poistumisesta myös ilmoituksen.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px" id="convCard" data-tpane="viestit">
+      <div class="card-head"><h2>Viestit</h2><span class="eyebrow" id="convInfo"></span><label class="chk"><input type="checkbox" id="convAll"> Kaikki opintojaksot</label></div>
+      <div class="conv">
+        <ul class="convlist" id="convList"></ul>
+        <div class="thread">
+          <div class="card-head" style="padding:12px 20px"><h2 id="threadTitle" style="font-size:16px">Keskustelu</h2></div>
+          <div class="msgs" id="threadMsgs" aria-live="polite"></div>
+          <form class="composer" id="threadForm" hidden>
+            <label for="threadInput" class="sr">Vastaus</label>
+            <textarea id="threadInput" placeholder="Kirjoita vastaus…" maxlength="1000"></textarea>
+            <button class="btn primary" type="submit">Lähetä</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="card" style="margin-top:18px" data-tpane="raportit">
+      <div class="card-head"><h2>Tuntiraportit</h2></div>
+      <div class="card-body">
+        <ul class="reports" id="reportList"></ul>
+        <div class="empty" id="reportEmpty" style="padding:16px 0">Tältä opintojaksolta ei ole vielä raportteja. Raportti syntyy, kun aloitat ja lopetat oppitunnin.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px" data-tpane="sisalto">
+      <div class="card-head"><h2>Sallitut ohjelmat ja palvelut</h2></div>
+      <div class="card-body">
+        <p class="notice" style="margin:0 0 12px">Kun opiskelija avaa ohjelman Origon kautta, siirtymää ei lasketa poistumiseksi. Origo ei näe ohjelman sisälle.</p>
+        <div class="row2" id="appPresets"></div>
+        <form class="newcourse" id="fApp">
+          <div class="field"><label for="aName">Ohjelman tai palvelun nimi</label><input id="aName" required placeholder="esim. TI-Nspire CX CAS"></div>
+          <div class="field"><label for="aUrl">Verkko-osoite (valinnainen)</label><input id="aUrl" placeholder="https://"></div>
+          <button class="btn" type="submit">Lisää sallituksi</button>
+        </form>
+        <ul class="mlist" id="aList"></ul>
+      </div>
+    </div>
+
+    <div class="manage" data-tpane="sisalto">
+      <div class="card">
+        <div class="card-head"><h2>Materiaalit</h2></div>
+        <div class="card-body">
+          <form id="fMat">
+            <div class="field"><label for="mTitle">Otsikko</label><input id="mTitle" required></div>
+            <div class="row2">
+              <div class="field"><label for="mTopic">Aihe</label><input id="mTopic" placeholder="esim. Yhtälöt"></div>
+              <div class="field"><label for="mKind">Tyyppi</label><select id="mKind"><option value="teksti">Teksti</option><option value="linkki">Linkki</option></select></div>
+            </div>
+            <div class="field"><label for="mBody">Sisältö tai osoite</label><textarea id="mBody" required placeholder="Kirjoita teksti tai liitä https://-osoite"></textarea></div>
+            <button class="btn primary" type="submit">Lisää materiaali</button>
+          </form>
+          <ul class="mlist" id="mList"></ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Tehtävät</h2></div>
+        <div class="card-body">
+          <form id="fTask">
+            <div class="field"><label for="tTitle">Otsikko</label><input id="tTitle" required></div>
+            <div class="row2">
+              <div class="field"><label for="tType">Tyyppi</label><select id="tType"><option value="tehtava">Tehtävä</option><option value="laksy">Läksy</option><option value="projekti">Projekti</option></select></div>
+              <div class="field"><label for="tDue">Määräaika</label><input id="tDue" type="date" required></div>
+            </div>
+            <div class="field"><label for="tDesc">Kuvaus</label><textarea id="tDesc"></textarea></div>
+            <button class="btn primary" type="submit">Lisää tehtävä</button>
+          </form>
+          <ul class="mlist" id="tList"></ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Muistiinpanot</h2></div>
+        <div class="card-body">
+          <form id="fNote">
+            <div class="field"><label for="nTitle">Otsikko</label><input id="nTitle" required></div>
+            <div class="field"><label for="nBody">Teksti</label><textarea id="nBody" required></textarea></div>
+            <button class="btn primary" type="submit">Jaa muistiinpano</button>
+          </form>
+          <ul class="mlist" id="nList"></ul>
+        </div>
+      </div>
+    </div>
+    <p class="notice" id="writeNotice" hidden></p>
+  </section>
+</main>
+
+<!-- TEACHER START VIEW: modelled on Origo's "Luokat" page so the lesson-space button can be shown in place (concept demo) -->
+<div class="oscreen" id="classScreen" hidden>
+  <aside class="o-side">
+    <div class="o-logo"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M15 3v24M3 15h24" stroke="#b9b4aa" stroke-width="1.4"/><circle cx="15" cy="15" r="2.4" fill="#1f1d1a"/></svg>origo</div>
+    <nav class="o-nav" aria-label="Origo">
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h5.5a2 2 0 0 1 2 2V17a1.6 1.6 0 0 0-1.6-1.6H3zM17 4.5h-5.5a1 1 0 0 0-1 1V17a1.6 1.6 0 0 1 1.6-1.6H17z"/></svg>Kurssikirjat</button>
+      <button type="button" class="o-navi on" aria-current="page"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="7" r="3"/><path d="M2.5 16.5a5 5 0 0 1 10 0M13 4.3a3 3 0 0 1 0 5.4M15 12a5 5 0 0 1 2.5 4.5"/></svg>Luokat</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M10 4v12M5 7.5h2.5M5 10h2.5M12.5 7.5H15M12.5 10H15"/></svg>Oma sisältö</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 4H5l5 6-5 6h10"/></svg>Kaavakirja</button>
+    </nav>
+    <div class="o-side-foot">
+      <p class="o-concept">Konseptiesittely: Origon Luokat-näkymä on mallinnettu, jotta oppituntitilan paikka palvelussa näkyy. Tämä ei ole Origon virallinen palvelu.</p>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17.5 2.5 2.5 9l6 2.5 2.5 6z"/><path d="m8.5 11.5 9-9"/></svg>Palaute</button>
+      <div class="o-user"><span class="o-avatar">O</span><span><b>Opettaja</b><small>Opettaja</small></span><button class="o-switch" id="oStudent" type="button">Opiskelijan näkymä</button></div>
+    </div>
+  </aside>
+  <div class="o-main">
+    <div class="o-crumbs"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M7.5 3.5v13"/></svg><span class="o-sep"></span>Etusivu <span>›</span> Luokat <span>›</span> <b id="oCrumb"></b><span class="o-badge">Konseptiesittely</span></div>
+    <h1 class="o-h1">Luokat</h1>
+    <div class="o-grid">
+      <div class="o-box">
+        <div class="o-boxhead"><h2>Luokkani</h2><button class="o-btn" id="oNew" type="button">+ Uusi luokka</button></div>
+        <form class="o-newform" id="fCourse" hidden>
+          <div class="field"><label for="cName">Luokan nimi</label><input id="cName" placeholder="esim. FY1 · Ryhmä 2" required></div>
+          <div class="field"><label for="newCourseBook">Kurssikirja</label><select id="newCourseBook"></select></div>
+          <button class="o-btn dark" type="submit">Luo luokka</button>
+        </form>
+        <div class="o-list" id="oList"></div>
+        <div class="o-arch"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="4" rx="1"/><path d="M4 7.5v8.5h12V7.5M8 11h4"/></svg>Arkistoidut (0)</div>
+      </div>
+      <div class="o-detail" id="oDetail">
+        <div class="o-dhead">
+          <div class="o-cover lg" id="oCover"></div>
+          <div class="o-title"><b id="oName"></b><small id="oSub"></small></div>
+          <button class="o-start" id="oStart" type="button"></button>
+          <details class="o-menu"><summary aria-label="Lisää toimintoja">···</summary><div><button type="button" id="delCourse">Poista luokka</button></div></details>
+        </div>
+        <div class="o-tabs" role="tablist">
+          <button type="button" role="tab" data-otab="yleis" aria-selected="true">Yleiskatsaus</button>
+          <button type="button" role="tab" data-otab="opiskelijat" aria-selected="false">Opiskelijat</button>
+          <button type="button" role="tab" data-otab="liittyminen" aria-selected="false">Liittyminen</button>
+          <button type="button" role="tab" data-otab="kirjat" aria-selected="false">Kurssikirjat</button>
+        </div>
+        <div data-opane="yleis"><div class="o-kpis" id="oKpis"></div><div class="tablewrap"><table class="o-table" id="oTopics"></table></div></div>
+        <div data-opane="opiskelijat" hidden><div class="tablewrap"><table class="o-table" id="oStudents"></table></div></div>
+        <div data-opane="liittyminen" hidden>
+          <div class="joincode" id="joinCode" hidden>
+            <span class="eyebrow">Liittymiskoodi</span>
+            <b class="mono" id="joinCodeVal"></b>
+            <button class="btn small" id="copyCode" type="button">Kopioi</button>
+            <button class="btn small" id="newCode" type="button">Vaihda koodi</button>
+            <small>Anna koodi opiskelijoille. He lisäävät luokan sillä omaan näkymäänsä. Koodin vaihtaminen ei poista jo liittyneitä.</small>
+            <div class="deeplink"><span class="eyebrow">Oppituntitilan linkki</span><code id="deepLink"></code><button class="btn small" id="copyLink" type="button">Kopioi linkki</button></div>
+          </div>
+        </div>
+        <div data-opane="kirjat" hidden><p class="o-muted" id="bookChosen"></p><div class="books" id="bookPicker"></div></div>
+        <div class="o-empty" id="oEmpty">Valitse luokka vasemmalta tai luo uusi luokka.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- STUDENT START VIEW: modelled on Origo's "Kurssikirjat" page; a live lesson shows up as a join button in the sidebar (concept demo) -->
+<div class="oscreen" id="studentHome" hidden>
+  <aside class="o-side">
+    <div class="o-logo"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M15 3v24M3 15h24" stroke="#b9b4aa" stroke-width="1.4"/><circle cx="15" cy="15" r="2.4" fill="#1f1d1a"/></svg>origo</div>
+    <div class="o-join" id="sJoinLesson" aria-live="polite"></div>
+    <nav class="o-nav" aria-label="Origo">
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5M7.5 10h5M7.5 13h5"/></svg>Kokeet</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 10a6.5 6.5 0 1 0 2-4.7M3.5 3v3.5H7"/><path d="m7.5 10 2 2 3.5-4"/></svg>Kerrattavat</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 4 12 12M16 4 4 16"/><circle cx="4" cy="4" r="1.5"/><circle cx="16" cy="16" r="1.5"/></svg>Edistyminen</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>Paketit</button>
+      <button type="button" class="o-navi on" aria-current="page"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h5.5a2 2 0 0 1 2 2V17a1.6 1.6 0 0 0-1.6-1.6H3zM17 4.5h-5.5a1 1 0 0 0-1 1V17a1.6 1.6 0 0 1 1.6-1.6H17z"/></svg>Kurssikirjat</button>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 4H5l5 6-5 6h10"/></svg>Kaavakirja</button>
+    </nav>
+    <div class="o-side-foot">
+      <p class="o-concept">Konseptiesittely: Origon Kurssikirjat-näkymä on mallinnettu, jotta oppitunnille liittyminen näkyy. Tämä ei ole Origon virallinen palvelu.</p>
+      <button type="button" class="o-navi" data-oinert><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17.5 2.5 2.5 9l6 2.5 2.5 6z"/><path d="m8.5 11.5 9-9"/></svg>Palaute</button>
+      <div class="o-user"><span class="o-avatar">O</span><span><b>Opiskelija</b><small>Opiskelija</small></span><button class="o-switch" id="sTeacher" type="button" hidden>Opettajan näkymä</button></div>
+    </div>
+  </aside>
+  <div class="o-main">
+    <div class="o-crumbs"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M7.5 3.5v13"/></svg><span class="o-sep"></span>Etusivu <span>›</span> Kurssikirjat <span>›</span> <b id="sCrumb"></b><span class="o-badge">Konseptiesittely</span></div>
+    <div class="o-hero">
+      <div class="o-banner"><button class="o-btn" type="button" data-oinert>← Takaisin</button><h1 id="sBookTitle"></h1></div>
+      <div class="o-herobar">
+        <div class="o-seg"><span class="on"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4.5h5.5a2 2 0 0 1 2 2V17a1.6 1.6 0 0 0-1.6-1.6H3zM17 4.5h-5.5a1 1 0 0 0-1 1V17a1.6 1.6 0 0 1 1.6-1.6H17z"/></svg>Kirja</span><span>GeoGebra-ohjeet</span></div>
+        <label for="sClass" class="sr">Luokka</label><select class="o-select" id="sClass"></select>
+      </div>
+    </div>
+    <div class="o-joinbox">
+      <form class="joinform" id="joinForm">
+        <div class="field"><label for="joinInput">Liity luokkaan koodilla</label><input id="joinInput" class="mono" maxlength="9" placeholder="esim. 7KQ-2XH" autocomplete="off" spellcheck="false"></div>
+        <button class="o-btn dark" type="submit">Liity</button>
+        <button class="linkbtn" type="button" id="sLeave" hidden>Poistu valitusta luokasta</button>
+      </form>
+      <p class="joinerr" id="joinErr" hidden></p>
+    </div>
+    <div class="o-chapters" id="sChapters"></div>
+  </div>
+</div>
+<div class="alerts" id="alerts" aria-live="assertive"></div>
+<div class="away" id="away" hidden>
+  <div class="away-card" role="alertdialog" aria-labelledby="awayTitle">
+    <span class="eyebrow">Poistuminen kirjattu</span>
+    <h2 id="awayTitle">Olit poissa oppimisympäristöstä</h2>
+    <p id="awayText">Opettaja sai poistumisesta ilmoituksen. Palaa oppitunnille jatkaaksesi.</p>
+    <button class="btn primary" id="returnBtn" type="button">Palaa oppitunnille</button>
+  </div>
+</div>
+<div class="present" id="present" hidden>
+  <h2 id="pTitle"></h2><ul id="pBody"></ul>
+  <div class="pfoot"><button type="button" id="pPrev">← Edellinen</button><span id="pNum"></span><button type="button" id="pNext">Seuraava →</button><button type="button" id="pClose">Lopeta esitys</button></div>
+</div>
+<div class="modal" id="subsModal" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="subsTitle">
+    <div class="card-head"><h2 id="subsTitle">Palautukset</h2><button class="btn small" id="subsClose" type="button">Sulje</button></div>
+    <div class="card-body">
+      <div class="sublist" id="subsList"></div>
+      <div class="subview" id="subsView"></div>
+      <div class="field" style="margin-top:14px"><label for="subsComment">Kommentti opiskelijalle</label><textarea id="subsComment"></textarea></div>
+      <div class="row2" style="margin-top:10px"><button class="btn primary" id="subsSave" type="button">Tallenna kommentti</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="msgBox" hidden>
+  <div class="msgcard" id="msgCard" role="alertdialog" aria-labelledby="msgHead">
+    <span class="eyebrow" id="msgHead">Viesti opettajalta</span>
+    <p id="msgText2"></p>
+    <button class="btn primary" id="msgOk" type="button">Selvä</button>
+  </div>
+</div>
+<div class="modal" id="lessonSum" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="lsTitle" style="width:min(620px,100%)">
+    <div class="card-head"><h2 id="lsTitle">Tuntikooste</h2><button class="btn small" id="lsClose" type="button">Sulje</button></div>
+    <div class="card-body"><div class="kpis" id="lsKpis"></div><p class="notice" id="lsNote" style="font-size:15px;color:var(--ink)"></p></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inline = s => s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>");
+function md(t){
+  return esc(t).trim().split(/\n{2,}/).map(b => {
+    const lines = b.split("\n");
+    if (lines.every(l => /^\s*[-*] /.test(l))) return "<ul>"+lines.map(l=>"<li>"+inline(l.replace(/^\s*[-*] /,""))+"</li>").join("")+"</ul>";
+    if (lines.every(l => /^\s*\d+[.)] /.test(l))) return "<ol>"+lines.map(l=>"<li>"+inline(l.replace(/^\s*\d+[.)] /,""))+"</li>").join("")+"</ol>";
+    if (/^#{1,4} /.test(b)) return "<h4>"+inline(b.replace(/^#+ /,""))+"</h4>";
+    if (/^&gt;&gt; /.test(b)) return `<div class="formula">${inline(b.slice(8))}</div>`;
+    return "<p>"+inline(b).replace(/\n/g,"<br>")+"</p>";
+  }).join("");
+}
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- Origo-kirjat ---------- */
+const BOOKS = [
+  { id:"maa3", title:"Origo MAA3 Geometria", subject:"Matematiikka, pitkä", grade:"Lukio · moduuli MAA3", mark:"M3", tone:"--accent", chapters:[
+    { title:"Suorakulmaisen kolmion trigonometria", body:"Suorakulmaisessa kolmiossa terävän kulman α ja sivujen suhteet ovat aina samat kolmion koosta riippumatta.\n\n>> sin α = vastainen / hypotenuusa\n\n>> cos α = viereinen / hypotenuusa\n\n>> tan α = vastainen / viereinen\n\nKun kaksi suuretta tunnetaan, kolmas ratkaistaan. Kulma saadaan käänteisfunktiolla, esimerkiksi `α = tan⁻¹(1) = 45°`. Tarkista, että laskin on **astetilassa**.",
+      ex:[{q:"Suorakulmaisen kolmion hypotenuusa on 10 ja kulma α = 30°. Laske kulman α vastainen kateetti.",a:["5"]},{q:"Kateettien pituudet ovat 3 ja 4. Laske hypotenuusa.",a:["5"],hint:"Pythagoraan lause: a² + b² = c²."},{q:"tan α = 1. Mikä on terävä kulma α asteina?",a:["45"]},{q:"sin α = 0,5. Mikä on terävä kulma α asteina?",a:["30"]}]},
+    { title:"Ympyrä ja sektori", body:"Ympyrän kehän pituus ja pinta-ala riippuvat säteestä r.\n\n>> p = 2πr      A = πr²\n\nSektorin ala on se osa koko ympyrästä, jonka keskuskulma α rajaa:\n\n>> A_sektori = (α / 360°) · πr²\n\nAnna vastaukset yhden desimaalin tarkkuudella, ellei toisin pyydetä.",
+      ex:[{q:"Ympyrän säde on 3. Laske ympyrän pinta-ala yhden desimaalin tarkkuudella.",a:["28.3"]},{q:"Ympyrän halkaisija on 10 cm. Laske kehän pituus senttimetreinä yhden desimaalin tarkkuudella.",a:["31.4"]},{q:"Sektorin keskuskulma on 90° ja säde 4. Laske sektorin ala yhden desimaalin tarkkuudella.",a:["12.6"]}]},
+    { title:"Kappaleiden tilavuudet", body:"Lieriön tilavuus on pohjan ala kertaa korkeus. Kartion ja pyramidin tilavuus on kolmasosa vastaavan lieriön tai särmiön tilavuudesta.\n\n>> V_lieriö = πr²h      V_kartio = ⅓πr²h\n\n- Kuution tilavuus: `V = a³`\n- Pallon tilavuus: `V = 4/3 · πr³`",
+      ex:[{q:"Kuution särmän pituus on 3. Laske tilavuus.",a:["27"]},{q:"Lieriön pohjan säde on 2 ja korkeus 5. Laske tilavuus yhden desimaalin tarkkuudella.",a:["62.8"]},{q:"Kartion pohjan säde on 3 ja korkeus 4. Laske tilavuus yhden desimaalin tarkkuudella.",a:["37.7"]}]}
+  ]},
+  { id:"fy1", title:"Origo FY1 Fysiikka luonnontieteenä", subject:"Fysiikka", grade:"Lukio · moduuli FY1", mark:"F1", tone:"--ok", chapters:[
+    { title:"Suureet ja yksiköt", body:"Fysiikassa jokaisella suureella on lukuarvo ja yksikkö. Laskut tehdään **SI-yksiköissä**.\n\n>> 1 km/h = 1 / 3,6 m/s\n\n- `1 h = 3600 s`\n- `1 g/cm³ = 1000 kg/m³`\n\nMuunna yksiköt ennen sijoittamista kaavaan.",
+      ex:[{q:"Muunna 72 km/h yksikköön m/s.",a:["20"]},{q:"Muunna 2,5 g/cm³ yksikköön kg/m³.",a:["2500"]},{q:"Montako sekuntia on 1,5 tuntia?",a:["5400"]}]},
+    { title:"Tasaisesti kiihtyvä liike", body:"Kun kiihtyvyys a on vakio, nopeus ja paikka muuttuvat ajan funktiona:\n\n>> v = v₀ + at\n\n>> s = v₀t + ½at²\n\nVapaasti putoavan kappaleen kiihtyvyys on `g = 9,81 m/s²`.",
+      ex:[{q:"Auto kiihtyy levosta kiihtyvyydellä 3,0 m/s² ajan 4,0 s. Laske loppunopeus (m/s).",a:["12"]},{q:"Kuinka pitkän matkan (m) sama auto kulkee tänä aikana?",a:["24"]},{q:"Kappale putoaa levosta 2,0 s. Laske sen nopeus (m/s) yhden desimaalin tarkkuudella.",a:["19.6"]}]},
+    { title:"Mittaustarkkuus", body:"Tulos ilmoitetaan yhtä tarkasti kuin epätarkin lähtöarvo. Tarkkuutta kuvaavat **merkitsevät numerot**.\n\n- Etunollat eivät ole merkitseviä: `0,0045` → 2 numeroa\n- Desimaalipilkun jälkeiset loppunollat ovat: `0,00450` → 3 numeroa",
+      ex:[{q:"Montako merkitsevää numeroa on luvussa 0,00450?",a:["3"]},{q:"Pyöristä 12,348 kolmen merkitsevän numeron tarkkuuteen.",a:["12.3"]}]}
+  ]},
+  { id:"ena1", title:"Origo English ENA1", subject:"Englanti, A-oppimäärä", grade:"Lukio · moduuli ENA1", mark:"E1", tone:"--warn", chapters:[
+    { title:"Present simple vs. present continuous", body:"**Present simple** kertoo tavoista ja yleisistä totuuksista: `She works in Tampere.`\n\n**Present continuous** kertoo, mitä tapahtuu juuri nyt: `She is working right now.`\n\nVihjesanoja: *usually, always, every day* → simple; *now, at the moment, look!* → continuous.",
+      ex:[{q:"Täydennä: She usually ___ to school by bus. (go)",a:["goes"]},{q:"Täydennä: Look! It ___. (rain)",a:["is raining","'s raining"]},{q:"Täydennä: They ___ a test right now. (write)",a:["are writing","'re writing"]}]},
+    { title:"Word formation", body:"Sanoja johdetaan päätteillä. Tunnista sanaluokka ennen kuin valitset päätteen.\n\n- adjektiivi: *-ful, -less, -ive* (`success → successful`)\n- substantiivi: *-tion, -ment, -ness* (`develop → development`)\n- adverbi: *-ly* (`quick → quickly`)",
+      ex:[{q:"Muodosta adjektiivi: success →",a:["successful"]},{q:"Muodosta substantiivi: decide →",a:["decision"]},{q:"Muodosta substantiivi: develop →",a:["development"]},{q:"Muodosta adverbi: careful →",a:["carefully"]}]}
+  ]}
+];
+const bookById = id => BOOKS.find(b=>b.id===id) || null;
+const exId = (b,c,n) => `${b}-${c+1}-${n+1}`;
+const exTotal = b => b.chapters.reduce((s,c)=>s+c.ex.length,0);
+
+const STATUS = {
+  lobby:{label:"Ei aloitettu", cls:"s-lobby"},
+  active:{label:"Paikalla", cls:"s-active"},
+  nofs:{label:"Ei koko näytössä", cls:"s-nofs"},
+  away:{label:"Poistunut", cls:"s-away"},
+  gone:{label:"Sulki Origon", cls:"s-gone"},
+  allowed:{label:"Sallitussa ohjelmassa", cls:"s-allowed"},
+  absent:{label:"Ei paikalla", cls:"s-lobby"}
+};
+const VIEWS = {book:"Oppikirja", materials:"Materiaalit", tasks:"Tehtävät", notes:"Muistiinpanot", viestit:"Viestit", doc:"Teksti", sheet:"Taulukko", slides:"Esitys", ai:"Tekoälyapu"};
+const TYPES = {tehtava:"Tehtävä", laksy:"Läksy", projekti:"Projekti"};
+
+const S = {
+  isTeacher:false, mode:"student",
+  materials:[], tasks:[], notes:[], live:null, course:null,
+  allMaterials:[], allTasks:[], allNotes:[], courses:[], lives:{}, coursesLoaded:false,
+  courseId: store.get("origo.course"), tCourse: store.get("origo.tcourse"),
+  allowedApp:null, enroll:{}, myEnroll:{}, enrollLoaded:false,
+  mySubs:[], reports:[], demoOn:false, awayMs:0, awayFrom:null, online:new Map(),
+  joined: store.get("origo.joined")?.ids || [], joinedLoaded:false,
+  conv:null, convMsgs:[], convs:{}, threadId:null, threadMsgs:[],
+  done: store.get("origo.progress")?.done || {},
+  answers: store.get("origo.answers")?.answers || {},
+  docHtml: store.get("origo.document")?.html || "",
+  cells: store.get("origo.sheet")?.cells || {},
+  slides: store.get("origo.slides")?.slides || [{title:"", body:""}],
+  slideSel:0, presenting:-1,
+  locked:false, status:"lobby", since:Date.now(), awayCount:0, view:"book", selMat:null, chap:0,
+  activeMs:0, activeFrom:null, lessonKey:null, lastAct:Date.now(),
+  chat:[], busy:false, peers:[], known:new Map(), log:[], sound:false
+};
+let db=null, user=null, room=null, sample=null, uid=null;
+const fsOk = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+
+/* ---------- saving (private per student) ---------- */
+const saveQ = {};
+function save(name, data, statusEl){
+  store.set("origo."+name, data);
+  const q = saveQ[name] ||= {p:Promise.resolve(), t:0};
+  if (statusEl) statusEl.textContent = "Tallennetaan…";
+  clearTimeout(q.t);
+  q.t = setTimeout(() => {
+    if (!db || !uid){ if (statusEl) statusEl.textContent = "Tallennettu tälle laitteelle"; return; }
+    q.p = q.p.then(() => db.doc(`data/users/${uid}/${name}`).set(data))
+      .then(() => { if (statusEl) statusEl.textContent = "Tallennettu " + new Date().toLocaleTimeString("fi-FI",{hour:"2-digit",minute:"2-digit"}); })
+      .catch(() => { if (statusEl) statusEl.textContent = "Tallennettu tälle laitteelle"; });
+  }, 900);
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 2600); }
+
+/* ---------- lesson header ---------- */
+function renderHeader(){
+  const L=S.live, cname=S.course?.name || "", on=!!(L && L.active);
+  if (S.course){
+    // the lesson title usually repeats the course name; show only the topic underneath
+    let topic = on ? String(L.title || "") : "";
+    if (topic.startsWith(cname)) topic = topic.slice(cname.length).replace(/^\s*·\s*/, "");
+    $("#lessonTitle").textContent = cname;
+    $("#lessonSub").textContent = on ? (topic || "Oppitunti") : "Ei käynnissä olevaa oppituntia";
+  } else {
+    $("#lessonTitle").textContent = S.mode==="teacher" ? "Luo tai valitse opintojakso" : "Valitse opintojakso";
+    $("#lessonSub").textContent = "";
+  }
+  $("#lessonTime").hidden = !on;
+  if (on) $("#lessonStart").textContent = new Date(L.startedAt).toLocaleTimeString("fi-FI",{hour:"2-digit", minute:"2-digit"});
+  tick();
+}
+function tick(){
+  const L=S.live, c=$("#clock");
+  if (L && L.active && L.startedAt){
+    const m = Math.max(0, Math.floor((Date.now()-L.startedAt)/1000));
+    c.textContent = String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  } else c.textContent = "";
+  if (S.mode==="teacher") renderRosterTimes(); else renderMyStats();
+}
+setInterval(tick, 1000);
+
+/* ---------- student status + participation ---------- */
+function participation(){
+  const L=S.live; if (!L?.active || !L.startedAt) return null;
+  const now=Date.now(), span=now-L.startedAt; if (span<=0) return null;
+  const ms = S.activeMs + (S.activeFrom ? now-S.activeFrom : 0);
+  return Math.min(100, Math.round(ms/span*100));
+}
+function resetParticipation(){
+  S.activeMs=0; S.activeFrom = (S.status==="active"||S.status==="allowed") ? Date.now() : null; S.awayCount=0;
+  S.awayMs=0; S.awayFrom = (S.status==="away"||S.status==="nofs") ? Date.now() : null;
+}
+function renderStatus(){
+  const st = STATUS[S.status], p=$("#statusPill");
+  p.hidden = S.mode==="teacher";
+  p.className = "pill "+st.cls;
+  p.textContent = S.status==="allowed" && S.allowedApp ? "Sallitussa: "+S.allowedApp : st.label;
+  $("#lockbar").hidden = S.locked || !S.course;
+  $("#switchCourse").hidden = S.mode==="teacher" || S.locked;
+  $("#away").hidden = !(S.locked && (S.status==="away"||S.status==="nofs") && document.visibilityState==="visible");
+  $("#awayText").textContent = S.status==="nofs"
+    ? "Poistuit koko näytön tilasta. Opettaja sai siitä ilmoituksen. Palaa oppitunnille jatkaaksesi."
+    : "Vaihdoit toiseen ikkunaan tai välilehteen. Opettaja sai siitä ilmoituksen. Palaa oppitunnille jatkaaksesi.";
+}
+function setStatus(s){
+  if (s===S.status) return;
+  const now=Date.now();
+  const present = x => x==="active" || x==="allowed";
+  if (present(S.status) && S.activeFrom){ S.activeMs += now-S.activeFrom; S.activeFrom=null; }
+  if (present(s)) S.activeFrom = now;
+  const out = x => x==="away" || x==="nofs";
+  if (out(S.status) && S.awayFrom){ S.awayMs += now-S.awayFrom; S.awayFrom=null; }
+  if (out(s) && S.live?.active) S.awayFrom = now;
+  if (S.status==="active" && (s==="away"||s==="nofs")) S.awayCount++;
+  S.status=s; S.since=now;
+  pushPresence(); renderStatus();
+}
+function evaluate(){
+  if (!S.locked) return setStatus("lobby");
+  const visible = document.visibilityState==="visible";
+  // Platform consent dialogs (first AI question) can take focus; that is not leaving Origo.
+  const focused = document.hasFocus() || S.busy;
+  const fs = !fsOk || !!document.fullscreenElement;
+  const out = !visible || !focused;
+  if (out && S.allowedApp) return setStatus("allowed");
+  if (!out && S.allowedApp){ S.allowedApp=null; clearTimeout(allowT); }
+  setStatus(out ? "away" : (!fs ? "nofs" : "active"));
+}
+let allowT=0;
+function openAllowed(a){
+  S.allowedApp = a.name; pushPresence();
+  if (!a.url) toast(`Siirry nyt ohjelmaan ${a.name}. Opettaja näkee, että olet sallitussa ohjelmassa.`);
+  clearTimeout(allowT);
+  allowT = setTimeout(() => { if (S.status!=="allowed"){ S.allowedApp=null; pushPresence(); } }, 20000);
+}
+function renderAllowedRail(){
+  const apps = S.course?.allowed || [], box=$("#allowedRail");
+  $("#allowedHead").hidden = !apps.length; box.textContent="";
+  apps.forEach(a => {
+    const el = document.createElement(a.url ? "a" : "button");
+    if (a.url){ el.href=a.url; el.target="_blank"; el.rel="noopener"; } else el.type="button";
+    el.className="railapp";
+    el.innerHTML = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 4H4.5v11.5H16V12M11 4h5v5M16 4l-7 7"/></svg><span></span>`;
+    el.querySelector("span").textContent = a.name;
+    el.title = "Avaa sallittu ohjelma: " + a.name;
+    el.addEventListener("click", () => openAllowed(a));
+    box.appendChild(el);
+  });
+}
+async function enterLock(){
+  if (fsOk && !document.fullscreenElement){
+    try { await document.documentElement.requestFullscreen({navigationUI:"hide"}); } catch {}
+  }
+  try { await navigator.keyboard?.lock?.(["Escape","F11","Tab","MetaLeft","MetaRight"]); } catch {}
+  S.locked = true; writeEnroll(true);
+  if (fsOk && !document.fullscreenElement) toast("Koko näyttö ei avautunut tässä selaimessa. Läsnäolo seurataan silti.");
+  evaluate();
+}
+function leaveLock(){
+  S.locked=false;
+  try { navigator.keyboard?.unlock?.(); } catch {}
+  if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  evaluate(); renderStatus();
+}
+$("#enterBtn").addEventListener("click", enterLock);
+$("#returnBtn").addEventListener("click", enterLock);
+let blurT;
+window.addEventListener("blur", () => { clearTimeout(blurT); blurT=setTimeout(evaluate, 700); });
+window.addEventListener("focus", () => { clearTimeout(blurT); evaluate(); });
+document.addEventListener("visibilitychange", evaluate);
+document.addEventListener("fullscreenchange", evaluate);
+document.addEventListener("keydown", e => {
+  const k=e.key;
+  if (S.presenting>=0){
+    if (k==="Escape"){ e.preventDefault(); e.stopPropagation(); closePresent(); return; }
+    if (k==="ArrowRight"||k===" "||k==="PageDown"){ e.preventDefault(); stepPresent(1); return; }
+    if (k==="ArrowLeft"||k==="PageUp"){ e.preventDefault(); stepPresent(-1); return; }
+  }
+  if (!S.locked || S.mode==="teacher") return;
+  if (k==="F11" || k==="Escape" || (e.altKey && k==="Tab") || k==="Meta" || k==="OS"){
+    e.preventDefault(); e.stopPropagation();
+    toast("Pikanäppäin on estetty oppitunnin aikana");
+  }
+}, true);
+let lastActPush=0;
+["pointerdown","keydown","input"].forEach(ev => document.addEventListener(ev, () => {
+  S.lastAct=Date.now();
+  if (S.lastAct-lastActPush>10000){ lastActPush=S.lastAct; pushPresence(); }
+}, {passive:true, capture:true}));
+setInterval(() => { if (S.locked) pushPresence(); }, 30000);
+
+/* ---------- presence ---------- */
+function answeredCount(){
+  const b=bookById(S.course?.bookId); if (!b) return null;
+  let ok=0; b.chapters.forEach((c,ci)=>c.ex.forEach((x,ni)=>{ if (S.answers[exId(b.id,ci,ni)]?.ok) ok++; }));
+  return {ok, total:exTotal(b)};
+}
+// Room presence is visible to everyone in the lesson, so it carries only who is here and on which course.
+// The live status itself goes to enroll/<uid>, which only teachers (and the student) can read.
+let lastLiveKey="", lastLiveAt=0;
+function liveState(){
+  const a=answeredCount();
+  return {course:S.courseId||null, status:S.status, since:S.since, away:S.awayCount, awayMs:Math.round(awayTotal()/1000)*1000,
+    pct:participation(), lastAct:S.lastAct, done:doneCount(), tt:S.tasks.length, ok:a?.ok ?? null, total:a?.total ?? null,
+    subs:mySubCount(), app:S.status==="allowed" ? S.allowedApp : null, at:Date.now()};
+}
+function pushPresence(){
+  if (room) room.presence({role: S.isTeacher ? "teacher" : "student", uid, course: S.courseId || null}).catch(()=>{});
+  if (S.isTeacher || !db || !uid || !S.enrollLoaded) return;
+  const key = JSON.stringify({...liveState(), at:0, lastAct:0, pct:0});
+  if (key===lastLiveKey && Date.now()-lastLiveAt < 25000) return;
+  lastLiveKey=key; lastLiveAt=Date.now(); saveEnrollDoc();
+}
+let enrollBusy=false, enrollDirty=false;
+function saveEnrollDoc(){
+  if (!db || !uid || S.isTeacher || !S.enrollLoaded) return;
+  if (enrollBusy){ enrollDirty=true; return; }
+  enrollBusy=true;
+  db.doc("enroll/"+uid).set({courses:S.myEnroll, live:liveState()}).catch(()=>{}).finally(() => {
+    enrollBusy=false;
+    if (enrollDirty){ enrollDirty=false; saveEnrollDoc(); }
+  });
+}
+const doneCount = () => S.tasks.filter(t=>S.done[t.id]).length;
+
+/* each student's progress per course, readable by the teacher (enroll/<uid>) */
+let enrollT=0;
+function writeEnroll(force){
+  if (!db || !uid || S.isTeacher || !S.enrollLoaded || !S.courseId || !S.course) return;
+  clearTimeout(enrollT);
+  enrollT = setTimeout(() => {
+    const cid=S.courseId, a=answeredCount(), prev=S.myEnroll[cid];
+    const next = {done:doneCount(), taskTotal:S.tasks.length, ok:a?.ok??0, exTotal:a?.total??0, subs:mySubCount()};
+    if (!force && prev && Object.keys(next).every(k=>prev[k]===next[k]) && Date.now()-(prev.seen||0) < 600000) return;
+    S.myEnroll = {...S.myEnroll, [cid]: {...next, seen:Date.now()}};
+    saveEnrollDoc();
+  }, 1200);
+}
+
+/* ---------- navigation ---------- */
+function setView(v){
+  S.view=v;
+  document.querySelectorAll(".rail button").forEach(b => b.setAttribute("aria-current", b.dataset.view===v ? "page" : "false"));
+  for (const k of Object.keys(VIEWS)) $("#v-"+k).hidden = k!==v;
+  store.set("origo.view", v);
+  pushPresence();
+  if (v==="ai") renderChat();
+  if (v==="viestit") renderConv();
+  if (v==="sheet") renderSheet();
+  if (v==="slides") renderSlides();
+}
+document.querySelectorAll(".rail button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+
+/* ---------- textbook ---------- */
+function norm(s){ return String(s).trim().toLowerCase().replace(/\s+/g," ").replace(",",".").replace(/[€%]|\s*(km\/h|m\/s|kg|n|g\/cm³)$/,"").trim(); }
+function isRight(v, ans){
+  const n=norm(v);
+  return ans.some(a => { const x=norm(a); if (n===x) return true; const p=parseFloat(n), q=parseFloat(x); return !isNaN(p) && !isNaN(q) && /^-?[\d.]+$/.test(n) && Math.abs(p-q)<1e-9; });
+}
+function renderBook(){
+  const b = bookById(S.course?.bookId), body=$("#bookBody");
+  if (!b){
+    $("#bookHead").textContent="Oppikirja"; $("#bookSub").textContent=""; $("#cBook").textContent="–";
+    body.innerHTML = `<div class="empty"><strong>Opettaja ei ole vielä valinnut opintojakson kirjaa</strong>Kun opettaja valitsee Origo-kirjan, sen luvut ja tehtävät näkyvät tässä.</div>`;
+    return;
+  }
+  const a=answeredCount();
+  $("#bookHead").textContent=b.title; $("#bookSub").textContent=`${b.subject} · ${b.grade} · ${a.ok}/${a.total} tehtävää oikein`;
+  $("#cBook").textContent=`${a.ok}/${a.total}`;
+  if (S.chap>=b.chapters.length) S.chap=0;
+  const ch=b.chapters[S.chap];
+  body.innerHTML = `<div class="mat"><div class="mat-list">
+    <div class="cover"><span class="spine" style="background:var(${b.tone})">${esc(b.mark)}</span><div><b>${esc(b.title)}</b><small>${esc(b.grade)}</small><div class="progress"><i style="width:${Math.round(a.ok/a.total*100)}%"></i></div></div></div>
+    ${b.chapters.map((c,i) => { const done=c.ex.filter((x,n)=>S.answers[exId(b.id,i,n)]?.ok).length;
+      return `<button type="button" data-ch="${i}" aria-current="${i===S.chap}"><b>${i+1}. ${esc(c.title)}</b><span>${done}/${c.ex.length} tehtävää</span></button>`; }).join("")}
+  </div><article class="reader"><span class="eyebrow">Luku ${S.chap+1}</span><h3>${esc(ch.title)}</h3><div class="prose">${md(ch.body)}</div>
+    <section class="exs"><h4>Tehtävät</h4>${ch.ex.map((x,n) => {
+      const id=exId(b.id,S.chap,n), st=S.answers[id];
+      return `<div class="ex"><span class="n">${S.chap+1}.${n+1}</span><p>${esc(x.q)}</p>
+        <form data-ex="${id}" data-ch="${S.chap}" data-n="${n}"><label class="sr" for="in-${id}">Vastaus</label><input id="in-${id}" value="${esc(st?.v||"")}" autocomplete="off" placeholder="Vastaus">${x.unit?`<span>${esc(x.unit)}</span>`:""}<button class="btn small" type="submit">Tarkista</button><span class="fb ${st?(st.ok?"ok":"no"):""}">${st?(st.ok?"✓ Oikein":"Ei vielä, yritä uudelleen"):""}</span></form>
+        ${st && !st.ok && x.hint ? `<span class="hint">Vihje: ${esc(x.hint)}</span>`:""}</div>`;
+    }).join("")}</section></article></div>`;
+  body.querySelectorAll("[data-ch]").forEach(el => { if (el.tagName==="BUTTON") el.addEventListener("click", () => { S.chap=+el.dataset.ch; renderBook(); }); });
+  body.querySelectorAll("form[data-ex]").forEach(f => f.addEventListener("submit", e => {
+    e.preventDefault();
+    const v=f.querySelector("input").value; if (!v.trim()) return;
+    const x=b.chapters[+f.dataset.ch].ex[+f.dataset.n];
+    S.answers = {...S.answers, [f.dataset.ex]: {v, ok:isRight(v, x.a), at:Date.now()}};
+    save("answers", {answers:S.answers}); writeEnroll();
+    renderBook(); pushPresence();
+    const next = $("#in-"+CSS.escape(f.dataset.ex)); next?.focus();
+  }));
+}
+
+/* ---------- materials ---------- */
+function renderMaterials(){
+  $("#cMat").textContent = S.materials.length;
+  const body=$("#matBody");
+  if (!S.materials.length){ body.innerHTML = `<div class="empty"><strong>Ei vielä materiaaleja</strong>Opettajan lisäämät materiaalit ilmestyvät tähän.</div>`; return; }
+  const list=[...S.materials].sort((a,b)=>(a.topic||"").localeCompare(b.topic||"","fi") || (a.createdAt||0)-(b.createdAt||0));
+  if (!S.selMat || !list.find(m=>m.id===S.selMat)) S.selMat = list[0].id;
+  const groups={};
+  list.forEach(m => (groups[m.topic||"Muut"] ||= []).push(m));
+  const sel = list.find(m=>m.id===S.selMat);
+  body.innerHTML = `<div class="mat"><div class="mat-list">${
+    Object.entries(groups).map(([t,ms]) => `<div class="mat-topic eyebrow">${esc(t)}</div>` + ms.map(m =>
+      `<button type="button" data-id="${esc(m.id)}" aria-current="${m.id===S.selMat}"><b>${esc(m.title)}</b><span>${m.kind==="linkki"?"Linkki":"Teksti"}</span></button>`).join("")).join("")
+  }</div><article class="reader"><span class="eyebrow">${esc(sel.topic||"Materiaali")}</span><h3>${esc(sel.title)}</h3>${
+    sel.kind==="linkki"
+      ? `<div class="linkcard"><a href="${esc(/^https?:\/\//i.test(sel.body)?sel.body:"#")}" target="_blank" rel="noopener">${esc(sel.body)}</a><small>Linkki avautuu uuteen välilehteen. Opettaja saa siitä poistumisilmoituksen.</small></div>`
+      : `<div class="prose">${md(sel.body)}</div>`
+  }</article></div>`;
+  body.querySelectorAll(".mat-list button").forEach(b => b.addEventListener("click", () => { S.selMat=b.dataset.id; renderMaterials(); }));
+}
+
+/* ---------- tasks ---------- */
+const dayMs = 864e5;
+function dueInfo(iso){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((new Date(iso+"T00:00:00") - today)/dayMs);
+  const label = new Date(iso+"T12:00:00").toLocaleDateString("fi-FI",{weekday:"short", day:"numeric", month:"numeric"});
+  const rel = days<0 ? `myöhässä ${-days} pv` : days===0 ? "tänään" : days===1 ? "huomenna" : `${days} pv`;
+  return {label, rel, cls: days<0 ? "late" : days<=2 ? "soon" : ""};
+}
+function renderTasks(){
+  const open = S.tasks.filter(t=>!S.done[t.id]).length;
+  $("#cTask").textContent = open;
+  $("#taskSummary").textContent = S.tasks.length ? `${open} avoinna, ${S.tasks.length-open} tehty` : "";
+  const body=$("#taskBody");
+  if (!S.tasks.length){ body.innerHTML = `<div class="empty"><strong>Ei tehtäviä</strong>Opettajan antamat tehtävät, läksyt ja projektit määräaikoineen näkyvät tässä.</div>`; return; }
+  body.innerHTML = `<div class="tasks">${["laksy","tehtava","projekti"].map(type => {
+    const ts = S.tasks.filter(t=>t.type===type).sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+    if (!ts.length) return "";
+    return `<div class="tgroup"><h3><span class="chip t-${type}">${TYPES[type]}</span></h3>${ts.map(t => {
+      const d = t.due ? dueInfo(t.due) : null, done=!!S.done[t.id];
+      return `<label class="trow${done?" done":""}"><input type="checkbox" data-id="${esc(t.id)}" ${done?"checked":""}><span><b>${esc(t.title)}</b>${t.desc?`<p>${esc(t.desc)}</p>`:""}</span>${d?`<span class="due ${done?"":d.cls}">${esc(d.label)}<small>${done?"tehty":esc(d.rel)}</small></span>`:"<span></span>"}</label>`;
+    }).join("")}</div>`;
+  }).join("")}</div>`;
+  body.querySelectorAll("input[type=checkbox]").forEach(c => c.addEventListener("change", () => {
+    S.done = {...S.done}; if (c.checked) S.done[c.dataset.id]=true; else delete S.done[c.dataset.id];
+    save("progress", {done:S.done}); renderTasks(); writeEnroll(); pushPresence();
+  }));
+}
+
+/* ---------- notes ---------- */
+function renderNotes(){
+  $("#cNote").textContent = S.notes.length;
+  const body=$("#noteBody");
+  if (!S.notes.length){ body.innerHTML = `<div class="empty"><strong>Ei muistiinpanoja</strong>Opettajan jakamat muistiinpanot näkyvät tässä.</div>`; return; }
+  const ns=[...S.notes].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  body.innerHTML = `<div class="notes">${ns.map(n => `<article class="note"><h3>${esc(n.title)}</h3><span class="eyebrow">${n.createdAt?new Date(n.createdAt).toLocaleDateString("fi-FI",{weekday:"short",day:"numeric",month:"numeric"}):""}</span><div class="prose">${md(n.body)}</div></article>`).join("")}</div>`;
+}
+
+/* ---------- document ---------- */
+const docPage=$("#docPage");
+function cleanHtml(html){
+  const t=document.createElement("template"); t.innerHTML=html;
+  const ok=new Set(["P","H2","H3","B","STRONG","I","EM","U","UL","OL","LI","BR","DIV","SPAN"]);
+  t.content.querySelectorAll("*").forEach(el => { if (!ok.has(el.tagName)) el.replaceWith(...el.childNodes); else [...el.attributes].forEach(a=>el.removeAttribute(a.name)); });
+  return t.innerHTML;
+}
+function loadDoc(){ docPage.innerHTML = cleanHtml(S.docHtml); docCount(); }
+function docCount(){ const w=(docPage.innerText.match(/\S+/g)||[]).length; $("#docStatus").dataset.words = w; }
+docPage.addEventListener("input", () => {
+  S.docHtml = docPage.innerHTML; docCount();
+  save("document", {html:S.docHtml}, $("#docStatus"));
+});
+$("#docTools").addEventListener("mousedown", e => { if (e.target.closest("button")) e.preventDefault(); });
+$("#docTools").addEventListener("click", e => {
+  const b=e.target.closest("button"); if (!b) return;
+  docPage.focus();
+  if (b.dataset.cmd) document.execCommand(b.dataset.cmd, false, null);
+  if (b.dataset.block) document.execCommand("formatBlock", false, b.dataset.block);
+  docPage.dispatchEvent(new Event("input"));
+});
+docPage.addEventListener("paste", e => {
+  e.preventDefault();
+  document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+});
+
+/* ---------- spreadsheet ---------- */
+const COLS="ABCDEFGH".split(""), ROWS=20;
+let sheetSel="A1";
+function parseExpr(src){
+  let i=0; const s=src.replace(/\s+/g,"");
+  const peek=()=>s[i];
+  function num(){ const m=/^\d+(\.\d+)?/.exec(s.slice(i)); if (!m) throw 0; i+=m[0].length; return parseFloat(m[0]); }
+  function factor(){
+    if (peek()==="-"){ i++; return -factor(); }
+    if (peek()==="+"){ i++; return factor(); }
+    if (peek()==="("){ i++; const v=expr(); if (s[i++]!==")") throw 0; return v; }
+    return num();
+  }
+  function pow(){ let v=factor(); while (peek()==="^"){ i++; v=Math.pow(v, factor()); } return v; }
+  function term(){ let v=pow(); while (peek()==="*"||peek()==="/"){ const o=s[i++]; const r=pow(); v = o==="*" ? v*r : v/r; } return v; }
+  function expr(){ let v=term(); while (peek()==="+"||peek()==="-"){ const o=s[i++]; const r=term(); v = o==="+" ? v+r : v-r; } return v; }
+  const v=expr(); if (i!==s.length) throw 0; return v;
+}
+function rangeRefs(a,b){
+  const c1=COLS.indexOf(a[0]), c2=COLS.indexOf(b[0]), r1=+a.slice(1), r2=+b.slice(1), out=[];
+  for (let c=Math.min(c1,c2); c<=Math.max(c1,c2); c++) for (let r=Math.min(r1,r2); r<=Math.max(r1,r2); r++) out.push(COLS[c]+r);
+  return out;
+}
+function cellValue(ref, seen=new Set(), cells=S.cells){
+  const raw = cells[ref] ?? "";
+  if (!String(raw).startsWith("=")){
+    const n = String(raw).trim().replace(",",".");
+    return n!=="" && !isNaN(n) ? parseFloat(n) : raw;
+  }
+  if (seen.has(ref)) return "#KEHÄ";
+  seen = new Set(seen); seen.add(ref);
+  const toNum = r => { const v=cellValue(r, seen, cells); if (typeof v==="string" && v.startsWith("#")) throw v; return typeof v==="number" ? v : 0; };
+  try {
+    let e = String(raw).slice(1).toUpperCase().replace(/,/g,".").replace(/;/g,",");
+    e = e.replace(/(SUMMA|SUM|KESKIARVO|AVERAGE|MIN|MAX|LASKE|COUNT)\(([A-H]\d{1,2}):([A-H]\d{1,2})\)/g, (m,f,a,b) => {
+      const vals = rangeRefs(a,b).map(r=>cellValue(r,seen,cells)).filter(v=>typeof v==="number");
+      if (/SUM/.test(f)) return String(vals.reduce((x,y)=>x+y,0));
+      if (/KESKI|AVER/.test(f)) return vals.length ? String(vals.reduce((x,y)=>x+y,0)/vals.length) : "0";
+      if (f==="MIN") return vals.length ? String(Math.min(...vals)) : "0";
+      if (f==="MAX") return vals.length ? String(Math.max(...vals)) : "0";
+      return String(vals.length);
+    });
+    e = e.replace(/\b([A-H])(\d{1,2})\b/g, m => "("+toNum(m)+")");
+    const v = parseExpr(e);
+    return isFinite(v) ? v : "#VIRHE";
+  } catch (err) { return typeof err==="string" ? err : "#VIRHE"; }
+}
+function fmt(v){ return typeof v==="number" ? v.toLocaleString("fi-FI",{maximumFractionDigits:4}) : String(v); }
+function renderSheet(){
+  const t=$("#sheet");
+  if (!t.dataset.built){
+    t.dataset.built="1";
+    t.innerHTML = `<thead><tr><th></th>${COLS.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${
+      Array.from({length:ROWS},(_,r)=>`<tr><th>${r+1}</th>${COLS.map(c=>`<td><input data-ref="${c}${r+1}" aria-label="Solu ${c}${r+1}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+    t.addEventListener("focusin", e => { const i=e.target.closest("input"); if (!i) return; sheetSel=i.dataset.ref; i.value=S.cells[sheetSel]??""; $("#sheetRef").textContent=sheetSel; $("#sheetFx").value=i.value; i.classList.remove("num","err"); });
+    t.addEventListener("input", e => { const i=e.target; $("#sheetFx").value=i.value; });
+    t.addEventListener("focusout", e => { const i=e.target.closest("input"); if (!i) return; setCell(i.dataset.ref, i.value); });
+    t.addEventListener("keydown", e => {
+      const i=e.target.closest("input"); if (!i) return;
+      const c=COLS.indexOf(i.dataset.ref[0]), r=+i.dataset.ref.slice(1);
+      let nc=c, nr=r;
+      if (e.key==="Enter"||e.key==="ArrowDown") nr=Math.min(ROWS,r+1);
+      else if (e.key==="ArrowUp") nr=Math.max(1,r-1);
+      else if (e.key==="Tab" && !e.altKey){ nc = e.shiftKey ? Math.max(0,c-1) : Math.min(COLS.length-1,c+1); }
+      else return;
+      e.preventDefault(); t.querySelector(`[data-ref="${COLS[nc]}${nr}"]`)?.focus();
+    });
+  }
+  t.querySelectorAll("input").forEach(i => {
+    if (i===document.activeElement) return;
+    const v = cellValue(i.dataset.ref);
+    i.value = (S.cells[i.dataset.ref] ?? "")==="" ? "" : fmt(v);
+    i.classList.toggle("num", typeof v==="number");
+    i.classList.toggle("err", typeof v==="string" && v.startsWith("#"));
+  });
+}
+function setCell(ref, raw){
+  const cells={...S.cells};
+  if (raw==="") delete cells[ref]; else cells[ref]=raw;
+  if (JSON.stringify(cells)===JSON.stringify(S.cells)) { renderSheet(); return; }
+  S.cells=cells; renderSheet(); save("sheet", {cells}, $("#sheetStatus"));
+}
+$("#sheetFx").addEventListener("keydown", e => { if (e.key==="Enter"){ e.preventDefault(); setCell(sheetSel, e.target.value); $("#sheet").querySelector(`[data-ref="${sheetSel}"]`)?.focus(); } });
+$("#sheetFx").addEventListener("change", e => setCell(sheetSel, e.target.value));
+let clearArmed=false;
+$("#sheetClear").addEventListener("click", e => {
+  if (!clearArmed){ clearArmed=true; e.target.textContent="Vahvista tyhjennys"; setTimeout(()=>{ clearArmed=false; e.target.textContent="Tyhjennä taulukko"; }, 4000); return; }
+  clearArmed=false; e.target.textContent="Tyhjennä taulukko"; S.cells={}; renderSheet(); save("sheet",{cells:{}}, $("#sheetStatus"));
+});
+
+/* ---------- slides ---------- */
+function renderSlides(){
+  if (S.slideSel>=S.slides.length) S.slideSel=S.slides.length-1;
+  const th=$("#thumbs"); th.textContent="";
+  S.slides.forEach((s,i) => {
+    const b=document.createElement("button"); b.type="button"; b.className="thumb"; b.setAttribute("aria-current", i===S.slideSel);
+    b.innerHTML=`<span class="thumb-n">${i+1}</span><b></b><span></span>`;
+    b.querySelector("b").textContent = s.title || "Nimetön dia";
+    b.querySelector("span:last-child").textContent = s.body.split("\n").slice(0,3).join(" · ");
+    b.addEventListener("click", () => { S.slideSel=i; renderSlides(); });
+    th.appendChild(b);
+  });
+  const cur=S.slides[S.slideSel];
+  if (document.activeElement!==$("#slideTitle")) $("#slideTitle").value=cur.title;
+  if (document.activeElement!==$("#slideBody")) $("#slideBody").value=cur.body;
+  $("#slideDel").disabled = S.slides.length<2;
+}
+function slideEdit(){
+  const s=[...S.slides]; s[S.slideSel]={title:$("#slideTitle").value, body:$("#slideBody").value}; S.slides=s;
+  renderSlides(); save("slides", {slides:s}, $("#slideStatus"));
+}
+$("#slideTitle").addEventListener("input", slideEdit);
+$("#slideBody").addEventListener("input", slideEdit);
+$("#slideAdd").addEventListener("click", () => { S.slides=[...S.slides.slice(0,S.slideSel+1), {title:"",body:""}, ...S.slides.slice(S.slideSel+1)]; S.slideSel++; renderSlides(); save("slides",{slides:S.slides},$("#slideStatus")); $("#slideTitle").focus(); });
+$("#slideDel").addEventListener("click", () => { if (S.slides.length<2) return; S.slides=S.slides.filter((_,i)=>i!==S.slideSel); renderSlides(); save("slides",{slides:S.slides},$("#slideStatus")); });
+function showPresent(){
+  const s=S.slides[S.presenting];
+  $("#pTitle").textContent = s.title || "";
+  const ul=$("#pBody"); ul.textContent="";
+  s.body.split("\n").filter(l=>l.trim()).forEach(l => { const li=document.createElement("li"); li.textContent=l.replace(/^\s*[-*•]\s*/,""); ul.appendChild(li); });
+  $("#pNum").textContent = `${S.presenting+1} / ${S.slides.length}`;
+}
+function stepPresent(d){ S.presenting=Math.max(0, Math.min(S.slides.length-1, S.presenting+d)); showPresent(); }
+function closePresent(){ S.presenting=-1; $("#present").hidden=true; }
+$("#slidePlay").addEventListener("click", () => { S.presenting=S.slideSel; $("#present").hidden=false; showPresent(); });
+$("#pPrev").addEventListener("click", () => stepPresent(-1));
+$("#pNext").addEventListener("click", () => stepPresent(1));
+$("#pClose").addEventListener("click", closePresent);
+
+/* ---------- AI chat ---------- */
+function renderChat(){
+  const box=$("#msgs");
+  if (!sample){
+    box.innerHTML = `<div class="empty"><strong>Tekoälyapu ei ole käytettävissä</strong>Avaa Origo claude.ai-tililläsi, jotta tekoälyapu toimii.</div>`;
+    $("#chatSend").disabled = true; $("#suggest").hidden = true; return;
+  }
+  $("#suggest").hidden = S.chat.length>0;
+  if (!S.chat.length){ box.innerHTML = `<div class="msg assistant"><div class="prose"><p>Hei! Olen Origon opiskeluapu. Voin selittää oppikirjan ja tunnin asioita, antaa harjoituksia ja auttaa alkuun tehtävissä. En tee tehtäviä valmiiksi, mutta autan sinua ymmärtämään ne.</p></div></div>`; return; }
+  box.innerHTML = S.chat.map(m => m.role==="user"
+    ? `<div class="msg user">${esc(m.content).replace(/\n/g,"<br>")}</div>`
+    : `<div class="msg assistant">${m.content?`<div class="prose">${md(m.content)}</div>`:`<span class="thinking">Mietitään…</span>`}</div>`).join("");
+  box.scrollTop = box.scrollHeight;
+  $("#chatSend").disabled = S.busy;
+}
+function context(){
+  const L=S.live, b=bookById(S.course?.bookId), ch=b?.chapters[S.chap];
+  return [
+    S.course ? `Opintojakso: ${S.course.name}` : "",
+    L?.active ? `Oppitunti: ${L.title}` : "",
+    b ? `Opintojakson kirja: ${b.title}. Opiskelija lukee nyt lukua ${S.chap+1} "${ch.title}":\n${ch.body}\nLuvun tehtävät (älä kerro vastauksia): ${ch.ex.map((x,n)=>`${S.chap+1}.${n+1} ${x.q}`).join(" | ")}` : "",
+    S.materials.length ? "Opettajan materiaalit: " + S.materials.map(m=>`${m.title}${m.topic?" ("+m.topic+")":""}`).join("; ") : "",
+    S.materials.filter(m=>m.kind!=="linkki").slice(0,4).map(m=>`--- ${m.title} ---\n${String(m.body).slice(0,1200)}`).join("\n"),
+    S.tasks.length ? "Tehtävät: " + S.tasks.map(t=>`${TYPES[t.type]||"Tehtävä"}: ${t.title}${t.due?" (määräaika "+t.due+")":""}`).join("; ") : ""
+  ].filter(Boolean).join("\n");
+}
+let raf=0;
+async function ask(q){
+  if (!sample || S.busy || !q.trim()) return;
+  S.busy=true;
+  S.chat.push({role:"user", content:q.trim()});
+  const a={role:"assistant", content:""}; S.chat.push(a); renderChat();
+  const instr = `Olet Origo-oppimisympäristön opiskeluavustaja lukio-opiskelijalle. Vastaa suomeksi, selkeästi ja lyhyesti (enintään noin 150 sanaa, ellei oppilas pyydä enemmän). Ohjaa oppilasta ajattelemaan itse: selitä käsitteitä, anna vihjeitä ja omia esimerkkejä, mutta älä anna valmiita vastauksia kirjan tehtäviin tai läksyihin. Pysy oppitunnin aiheissa; jos kysymys ei liity opiskeluun, ohjaa ystävällisesti takaisin oppitunnille. Käytä tarvittaessa lyhyitä listoja ja **lihavointia**.\n\nTaustatiedot oppitunnista:\n${context() || "(ei lisätietoja)"}`;
+  const hist = S.chat.slice(0,-1).slice(-12);
+  while (hist.length && hist[0].role!=="user") hist.shift();
+  const msgs = hist.map((m,i) => ({role:m.role, content: i===0 ? instr+"\n\nOpiskelijan viesti:\n"+m.content : m.content}));
+  try {
+    const r = await sample(msgs, {cache:false, onText:({text}) => { a.content=text; cancelAnimationFrame(raf); raf=requestAnimationFrame(renderChat); }});
+    a.content = r.text || a.content;
+  } catch (e) {
+    a.content = e?.code==="rate_limited" ? "Liian monta kysymystä lyhyessä ajassa. Odota hetki ja kysy uudelleen."
+      : e?.code==="not_granted" ? "Tekoälyapu ei ole sallittu tässä näkymässä."
+      : (e?.text || "Vastausta ei saatu. Yritä uudelleen.");
+  }
+  S.busy=false; renderChat(); evaluate();
+}
+$("#chatForm").addEventListener("submit", e => { e.preventDefault(); const i=$("#chatInput"); const q=i.value; i.value=""; ask(q); });
+$("#chatInput").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); $("#chatForm").requestSubmit(); } });
+$("#suggest").addEventListener("click", e => { if (e.target.tagName==="BUTTON") ask(e.target.textContent); });
+
+/* ---------- teacher: roster + alerts ---------- */
+// The room says who has Origo open; each student's private enroll/<uid>.live says what they are doing.
+function onPeers(ch){
+  S.peers = ch.peers;
+  const online = new Map();
+  for (const p of ch.peers){
+    if (p.kind!=="viewer" || p.presence?.role!=="student") continue;
+    const id = p.by || p.presence?.uid; if (!id) continue;
+    online.set(id, p.presence?.course || null);
+  }
+  S.online = online;
+  rebuildKnown();
+}
+function rebuildKnown(){
+  const now=Date.now(), seen=new Set();
+  for (const [id, d] of Object.entries(S.enroll)){
+    if (id===uid) continue;
+    const l=d?.live, isOn=S.online.has(id), prev=S.known.get(id);
+    if (!isOn && !prev) continue;
+    seen.add(id);
+    if (isOn){
+      const course = S.online.get(id) || l?.course || null;
+      track(id, l && l.course===course ? {...l, id, course} : {id, course, status:"lobby", since:now, away:0});
+    } else if (prev.status!=="gone") track(id, {...prev, ...(l||{}), id, course:prev.course, status:"gone", since:now});
+  }
+  for (const [id, course] of S.online) if (!seen.has(id) && id!==uid) track(id, {id, course, status:"lobby", since:now, away:0});
+  for (const [k, info] of S.known)
+    if (!k.startsWith("demo-") && !seen.has(k) && !S.online.has(k) && info.status!=="gone") track(k, {...info, status:"gone", since:now});
+  renderRoster(); renderCourses();
+}
+function track(k, info){
+  const prev=S.known.get(k);
+  if (!prev || prev.course!==info.course){
+    if (info.course && info.status!=="gone") addLog(info.id, info.status==="lobby" ? "avasi opintojakson" : "liittyi", "ok", false, info.course);
+  } else if (prev.status!==info.status){
+    if (info.status==="gone") addLog(info.id, "sulki Origon", "bad", true, info.course);
+    else logChange(info.id, info.status, prev.status, info.course, info.app, k, info.since, prev.since);
+  }
+  S.known.set(k, info);
+}
+const SHORT_MS = 5000;
+function logChange(id, s, prev, course, app, key, since, prevSince){
+  const quick = (prev==="away"||prev==="nofs") && prevSince && Date.now()-prevSince < SHORT_MS;
+  if (s==="allowed") addLog(id, "siirtyi sallittuun ohjelmaan: "+(app||"ohjelma"), "ok", false, course);
+  else if (s==="active" && prev==="allowed") addLog(id, "palasi Origoon sallitusta ohjelmasta", "ok", false, course);
+  else if (s==="away"||s==="nofs"){
+    // alert only when the absence lasts; short blips are logged quietly
+    setTimeout(() => {
+      const cur=S.known.get(key);
+      if (cur && cur.status===s && cur.since===since) addLog(id, s==="away" ? "poistui ympäristöstä" : "poistui koko näytön tilasta", s==="away" ? "bad" : "warn", true, course);
+      else if (cur && (cur.status==="active"||cur.status==="allowed")) addLog(id, "lyhyt katkos, palasi alle 5 sekunnissa", "warn", false, course);
+    }, SHORT_MS);
+  }
+  else if (s==="active" && quick) {}
+  else if (s==="active") addLog(id, prev==="lobby" ? "aloitti oppitunnin koko näytössä" : "palasi oppitunnille", "ok", false, course);
+  else if (s==="lobby") addLog(id, "ei ole lukitussa tilassa", "warn", false, course);
+}
+function addLog(id, text, cls, alert, course){
+  if (!course) return;
+  S.log.unshift({t:Date.now(), id, text, cls, course}); S.log = S.log.slice(0,300); renderLog();
+  if (alert && S.isTeacher && course===S.tCourse) notify(id, text, cls);
+}
+async function names(ids){
+  ids = [...new Set(ids.filter(Boolean))];
+  const demo = ids.filter(i=>i.startsWith("demo-")), real = ids.filter(i=>!i.startsWith("demo-"));
+  let out = {};
+  if (user && real.length){ try { out = {...await user.profiles(real)}; } catch {} }
+  demo.forEach(i => { out[i] = {name: DEMO_NAMES[+i.slice(5)] || "Opiskelija", avatarUrl:""}; });
+  return out;
+}
+let audioCtx=null;
+function beep(){
+  try {
+    audioCtx ||= new AudioContext();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.frequency.value=880; g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.2,audioCtx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.35);
+    o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+.4);
+  } catch {}
+}
+async function notify(id, text, cls){
+  // alerts about other students belong to the teacher view only
+  if (S.mode!=="teacher") return;
+  const ps = await names([id]);
+  if (S.mode!=="teacher") return;
+  const card=document.createElement("div"); card.className="alert-card"+(cls==="warn"?" warn":cls==="msg"?" msg":"");
+  card.innerHTML=`<div><b></b> <span></span><time></time></div><button type="button" aria-label="Sulje ilmoitus">×</button>`;
+  card.querySelector("b").textContent = (id && ps[id]?.name) || "Opiskelija";
+  card.querySelector("span").textContent = text;
+  card.querySelector("time").textContent = new Date().toLocaleTimeString("fi-FI",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  card.querySelector("button").addEventListener("click", () => card.remove());
+  const box=$("#alerts"); box.prepend(card);
+  while (box.children.length>4) box.lastElementChild.remove();
+  setTimeout(() => card.remove(), 12000);
+  if (S.sound) beep();
+}
+$("#soundBtn").addEventListener("click", e => {
+  S.sound=!S.sound; e.target.setAttribute("aria-pressed", S.sound); e.target.textContent = "Äänimerkki: "+(S.sound?"päällä":"pois");
+  if (S.sound) beep();
+});
+async function renderRoster(){
+  if (S.mode!=="teacher") return;
+  const cid=S.tCourse, rows=rosterRows(cid);
+  const ps = await names(rows.map(r=>r.id));
+  const nm = (r,i) => (r.id && ps[r.id]?.name) || "";
+  rows.sort((a,b) => (nm(a)||"~").localeCompare(nm(b)||"~","fi"));
+  const c={active:0, allowed:0, away:0, absent:0};
+  rows.forEach(r => {
+    if (r.status==="active") c.active++;
+    else if (r.status==="allowed") c.allowed++;
+    else if (r.status==="away"||r.status==="gone"||r.status==="nofs") c.away++;
+    else c.absent++;
+  });
+  $("#nActive").textContent=c.active; $("#nNofs").textContent=c.allowed; $("#nAway").textContent=c.away; $("#nLobby").textContent=c.absent;
+  $("#rosterEmpty").hidden = rows.length>0;
+  const tb=$("#rosterBody"); tb.textContent="";
+  rows.forEach((r,i) => {
+    const p = r.id ? ps[r.id] : null, st=STATUS[r.status]||STATUS.lobby;
+    const tr=document.createElement("tr"); if (r.status==="away"||r.status==="gone"||r.status==="nofs") tr.className="alert";
+    const tt = typeof r.tt==="number" ? r.tt : null, dn = typeof r.done==="number" ? r.done : null;
+    const tasks = tt!==null && dn!==null ? `<b>${dn}/${tt}</b>` : `<b>–</b>`;
+    const book = typeof r.ok==="number" && r.total ? `<span class="sub">kirjan tehtävät ${r.ok}/${r.total}</span>` : "";
+    const label = r.status==="allowed" && r.app ? "Sallitussa: "+r.app : (r.status==="lobby" ? "Origossa, ei koko näytössä" : st.label);
+    const pctLv = typeof r.pct==="number" && r.status!=="absent" ? "lv-"+presLevel(r.pct) : "";
+    const pct = pctLv ? `<span class="bar"><i style="width:${r.pct}%"></i></span><span class="lvchip">${r.pct} %</span>` : "–";
+    const awayCell = r.status!=="absent" ? `<span class="lvchip">${r.away||0}</span>${r.awayMs>=60000 ? `<span class="sub">poissa ${Math.round(r.awayMs/60000)} min</span>` : ""}` : "–";
+    const live = r.status!=="absent";
+    tr.innerHTML = `<td><div class="who"><img alt=""><span></span><span class="convflag"></span><button class="linkbtn" type="button" data-conv="1" style="font-size:12px">viesti</button></div></td>
+      <td class="tasksdone${tt && dn===tt ? " all" : ""}">${tasks}${book}</td>
+      <td>${r.subs ? `<button class="linkbtn" type="button" data-subs="1">${r.subs} kpl</button>` : "–"}</td>
+      <td><span class="pill ${st.cls}"></span></td>
+      <td class="mono" ${live && r.since ? `data-since="${r.since}"` : ""}>${live ? "" : "–"}</td>
+      <td class="mono ${pctLv}">${pct}</td>
+      <td class="mono ${live ? "lv-"+awayLevel(r.away||0) : ""}">${awayCell}</td>
+      <td class="mono" ${live ? `data-act="${r.lastAct||""}"` : ""}>${live ? "" : (r.seen ? "nähty "+new Date(r.seen).toLocaleString("fi-FI",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}) : "–")}</td>`;
+    tr.querySelector(".pill").textContent = label;
+    const img=tr.querySelector("img"); if (p?.avatarUrl) img.src=p.avatarUrl; else img.hidden=true;
+    tr.querySelector(".who span").textContent = p?.name || `Opiskelija ${i+1}`;
+    tr.querySelector("[data-subs]")?.addEventListener("click", () => openSubs(r.id, p?.name));
+    const cv = r.id ? S.convs[r.id] : null;
+    if (convUnreadT(cv)) tr.querySelector(".convflag").innerHTML = cv.viimeisin.apu ? `<span class="chip t-laksy">Pyytää apua</span>` : `<span class="chip t-tehtava">Uusi viesti</span>`;
+    tr.querySelector("[data-conv]").addEventListener("click", () => {
+      if (!r.id || r.id.startsWith("demo-")) return toast("Esittelytilan opiskelijoille ei voi kirjoittaa");
+      setTTab("viestit"); openThread(r.id);
+    });
+    tb.appendChild(tr);
+  });
+  updateMsgTo(rows, ps);
+  renderRosterTimes();
+}
+function rosterRows(cid){
+  const byId=new Map();
+  // everyone who has opened this course, then live presence on top
+  for (const [id, d] of Object.entries(S.enroll)){
+    const e=d?.courses?.[cid]; if (!e || id===uid) continue;
+    byId.set(id, {id, status:"absent", away:0, done:e.done, tt:e.taskTotal, ok:e.ok, total:e.exTotal, subs:e.subs, seen:e.seen});
+  }
+  for (const [k, r] of S.known){
+    if (r.course!==cid) continue;
+    const key=r.id||k, base=byId.get(key)||{};
+    byId.set(key, {...base, ...r, done:r.done ?? base.done, tt:r.tt ?? base.tt, ok:r.ok ?? base.ok, total:r.total ?? base.total, subs:r.subs ?? base.subs});
+  }
+  return [...byId.values()];
+}
+const ago = s => s<60 ? `${s} s` : `${Math.floor(s/60)} min`;
+function renderRosterTimes(){
+  const now=Date.now();
+  document.querySelectorAll("#rosterBody [data-since]").forEach(td => { td.textContent = ago(Math.max(0, Math.floor((now-Number(td.dataset.since))/1000))); });
+  document.querySelectorAll("#rosterBody [data-act]").forEach(td => {
+    if (!td.dataset.act){ td.textContent="–"; return; }
+    const s=Math.max(0, Math.floor((now-Number(td.dataset.act))/1000));
+    td.textContent = ago(s)+" sitten"; td.classList.toggle("idle", s>180);
+  });
+}
+async function renderLog(){
+  if (S.mode!=="teacher") return;
+  const logs = S.log.filter(l=>l.course===S.tCourse);
+  $("#logEmpty").hidden = logs.length>0;
+  const ps = await names(logs.map(l=>l.id));
+  const ul=$("#log"); ul.textContent="";
+  logs.forEach(l => {
+    const li=document.createElement("li"); li.className=l.cls;
+    li.innerHTML = `<time>${new Date(l.t).toLocaleTimeString("fi-FI",{hour:"2-digit",minute:"2-digit"})}</time><span><b></b> </span>`;
+    li.querySelector("b").textContent = l.id ? (ps[l.id]?.name || "Opiskelija") : "Koko ryhmä";
+    li.querySelector("span").append(l.text);
+    ul.appendChild(li);
+  });
+}
+$("#clearLog").addEventListener("click", () => { S.log=S.log.filter(l=>l.course!==S.tCourse); renderLog(); });
+
+/* ---------- teacher: lesson, book, content ---------- */
+function writeFail(e){
+  const n=$("#writeNotice"); n.hidden=false;
+  n.textContent = e?.code==="invalid_argument" ? "Sinulla ei ole muokkausoikeutta tähän Origoon. Pyydä omistajaa lisäämään sinut muokkaajaksi." : "Tallennus ei onnistunut. Tarkista yhteys ja yritä uudelleen.";
+}
+function renderLiveForm(){
+  const on = !!S.live?.active;
+  $("#liveBtn").textContent = on ? "Lopeta oppitunti" : "Aloita oppitunti";
+  $("#liveBtn").classList.toggle("danger", on); $("#liveBtn").classList.toggle("primary", !on);
+  $("#liveTitle").disabled = on || !S.tCourse; $("#liveBtn").disabled = !S.tCourse;
+  if (on || !$("#liveTitle").value) $("#liveTitle").value = S.live?.title || S.course?.name || "";
+}
+$("#liveForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!db) return toast("Tallennus ei ole käytettävissä tässä näkymässä");
+  if (!S.tCourse) return toast("Luo ensin opintojakso");
+  const ref=db.doc("live/"+S.tCourse);
+  try {
+    if (S.live?.active) { const lesson={...S.live, endedAt:Date.now()}; await ref.set({...lesson, active:false}); await saveReport(S.tCourse, lesson); toast("Oppitunti lopetettu ja tuntiraportti tallennettu"); }
+    else { S.log=S.log.filter(l=>l.course!==S.tCourse); S.known.forEach((v,k)=>{ if (v.status==="gone" && v.course===S.tCourse) S.known.delete(k); }); renderLog(); await ref.set({active:true, title:$("#liveTitle").value.trim()||"Oppitunti", startedAt:Date.now()}); toast("Oppitunti aloitettu"); }
+  } catch (err) { writeFail(err); }
+});
+function renderBookPicker(){
+  const cur=S.course?.bookId, box=$("#bookPicker"); box.textContent="";
+  $("#bookChosen").textContent = S.course ? `${S.course.name}: ${bookById(cur)?.title || "ei kirjaa"}` : "Valitse ensin opintojakso";
+  BOOKS.forEach(b => {
+    const btn=document.createElement("button"); btn.type="button"; btn.className="bookopt"; btn.setAttribute("aria-pressed", b.id===cur);
+    btn.innerHTML = `<span class="spine" style="background:var(${b.tone})">${esc(b.mark)}</span><span><b>${esc(b.title)}</b><small>${b.chapters.length} lukua · ${exTotal(b)} tehtävää</small></span>`;
+    btn.addEventListener("click", async () => {
+      if (!db) return toast("Tallennus ei ole käytettävissä tässä näkymässä");
+      if (!S.tCourse) return toast("Luo ensin opintojakso");
+      try { await db.doc("courses/"+S.tCourse).update({bookId:b.id}); toast(`${b.title} otettu käyttöön opintojaksolla${S.course?.name||""}`); } catch (err) { writeFail(err); }
+    });
+    box.appendChild(btn);
+  });
+}
+function bindForm(sel, col, build){
+  $(sel).addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!db) return toast("Tallennus ei ole käytettävissä tässä näkymässä");
+    const data = build(); if (!data) return;
+    if (!S.tCourse) return toast("Luo ensin opintojakso");
+    try { await db.collection(col).add({...data, courseId:S.tCourse, createdAt:Date.now()}); e.target.reset(); toast(`Lisätty opintojaksolle${S.course?.name||""}`); }
+    catch (err) { writeFail(err); }
+  });
+}
+bindForm("#fMat","materials", () => {
+  const kind=$("#mKind").value, body=$("#mBody").value.trim();
+  if (kind==="linkki" && !/^https?:\/\//i.test(body)){ toast("Linkin pitää alkaa https://"); return null; }
+  return {title:$("#mTitle").value.trim(), topic:$("#mTopic").value.trim(), kind, body};
+});
+bindForm("#fTask","tasks", () => ({title:$("#tTitle").value.trim(), type:$("#tType").value, due:$("#tDue").value, desc:$("#tDesc").value.trim()}));
+bindForm("#fNote","notes", () => ({title:$("#nTitle").value.trim(), body:$("#nBody").value.trim()}));
+
+const armed = new Set();
+function renderManage(){
+  const fill = (sel, col, items, label) => {
+    const ul=$(sel); ul.textContent="";
+    if (!items.length){ ul.innerHTML = `<li><span style="color:var(--muted)">Ei vielä yhtään.</span></li>`; return; }
+    items.forEach(it => {
+      const li=document.createElement("li");
+      li.innerHTML = `<span></span><button class="btn small danger" type="button"></button>`;
+      li.querySelector("span").textContent = label(it);
+      const b=li.querySelector("button"), key=col+"/"+it.id;
+      b.textContent = armed.has(key) ? "Vahvista poisto" : "Poista";
+      b.addEventListener("click", async () => {
+        if (!armed.has(key)){ armed.add(key); renderManage(); setTimeout(()=>{ armed.delete(key); renderManage(); }, 4000); return; }
+        armed.delete(key);
+        try { await db.doc(key).delete(); toast("Poistettu"); } catch (err) { writeFail(err); }
+      });
+      ul.appendChild(li);
+    });
+  };
+  fill("#mList","materials", S.materials, m => `${m.topic?m.topic+" · ":""}${m.title}`);
+  fill("#tList","tasks", [...S.tasks].sort((a,b)=>(a.due||"").localeCompare(b.due||"")), t => `${TYPES[t.type]||""} · ${t.title}${t.due?" · "+dueInfo(t.due).label:""}`);
+  fill("#nList","notes", S.notes, n => n.title);
+}
+
+/* ---------- courses ---------- */
+const activeCourse = () => S.mode==="teacher" ? S.tCourse : S.courseId;
+let prevLessonActive = null;
+function syncDerived(){
+  if (S.coursesLoaded){
+    const gone = S.courseId && !S.courses.find(c=>c.id===S.courseId);
+    const notJoined = S.courseId && S.joinedLoaded && !S.joined.includes(S.courseId);
+    if ((gone || notJoined) && !S.locked) { S.courseId=null; store.set("origo.course", null); }
+    if (!S.tCourse || !S.courses.find(c=>c.id===S.tCourse)) S.tCourse = S.courses[0]?.id || null;
+  }
+  const cid = activeCourse();
+  S.course = S.courses.find(c=>c.id===cid) || null;
+  S.live = cid ? (S.lives[cid] || null) : null;
+  const mine = a => a.filter(x=>x.courseId===cid);
+  S.materials = mine(S.allMaterials); S.tasks = mine(S.allTasks); S.notes = mine(S.allNotes);
+  const sl = S.courseId ? S.lives[S.courseId] : null;
+  const key = sl?.active ? sl.startedAt : null;
+  const active = !!sl?.active;
+  if (prevLessonActive===true && !active && S.mode!=="teacher") showLessonSummary(sl);
+  if (key!==S.lessonKey){ S.lessonKey=key; resetParticipation(); }
+  if (prevLessonActive===true && !active && S.mode!=="teacher"){
+    // the teacher ended the lesson: leave fullscreen and go back to the Origo start view (the summary stays on top)
+    if (S.locked) leaveLock();
+    if (S.sScreen==="lesson"){ S.sScreen="home"; syncOpen(); renderStudentHome(); window.scrollTo(0,0); }
+    toast("Opettaja päätti oppitunnin");
+  }
+  prevLessonActive = active;
+}
+function chooseCourse(id){
+  if (S.locked) return;
+  S.courseId=id; store.set("origo.course", id); S.chap=0; S.selMat=null;
+  syncDerived(); renderAll(); pushPresence(); writeEnroll(true);
+}
+const APP_PRESETS = [{name:"TI-Nspire CX CAS"}, {name:"GeoGebra", url:"https://www.geogebra.org/calculator"}, {name:"Casio ClassPad"}];
+async function setAllowed(list){
+  if (!db) return toast("Tallennus ei ole käytettävissä tässä näkymässä");
+  if (!S.tCourse) return toast("Luo ensin opintojakso");
+  try { await db.doc("courses/"+S.tCourse).update({allowed:list}); } catch (err) { writeFail(err); }
+}
+function renderAllowedAdmin(){
+  const apps = S.course?.allowed || [];
+  const pre=$("#appPresets"); pre.textContent="";
+  APP_PRESETS.filter(p=>!apps.some(a=>a.name===p.name)).forEach(p => {
+    const b=document.createElement("button"); b.type="button"; b.className="btn small"; b.textContent="+ "+p.name;
+    b.addEventListener("click", () => setAllowed([...apps, {id:"a"+Date.now().toString(36), ...p}]));
+    pre.appendChild(b);
+  });
+  const ul=$("#aList"); ul.textContent="";
+  if (!apps.length){ ul.innerHTML = `<li><span style="color:var(--muted)">Tällä opintojaksolla ei ole sallittuja ohjelmia.</span></li>`; return; }
+  apps.forEach(a => {
+    const li=document.createElement("li");
+    li.innerHTML = `<span></span><button class="btn small danger" type="button">Poista</button>`;
+    li.querySelector("span").textContent = a.url ? `${a.name} · ${a.url}` : `${a.name} · tietokoneen ohjelma`;
+    li.querySelector("button").addEventListener("click", () => setAllowed(apps.filter(x=>x.id!==a.id)));
+    ul.appendChild(li);
+  });
+}
+$("#fApp").addEventListener("submit", e => {
+  e.preventDefault();
+  const name=$("#aName").value.trim(), url=$("#aUrl").value.trim();
+  if (!name) return;
+  if (url && !/^https:\/\//i.test(url)) return toast("Osoitteen pitää alkaa https://");
+  const apps = S.course?.allowed || [];
+  setAllowed([...apps, {id:"a"+Date.now().toString(36), name, ...(url?{url}:{})}]);
+  e.target.reset();
+});
+function chooseTeacherCourse(id){
+  S.tCourse=id; store.set("origo.tcourse", id); S.chap=0; S.selMat=null; $("#liveTitle").value="";
+  syncDerived(); renderAll();
+  if (S.demoOn){ stopDemo(); startDemo(); }
+}
+$("#switchCourse").addEventListener("click", () => { if (!S.locked) setSScreen("home"); });
+
+/* ---------- join codes ---------- */
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O or 1/I mix-ups
+const normCode = s => String(s||"").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const fmtCode = c => c ? c.slice(0,3)+"-"+c.slice(3) : "";
+function genCode(){
+  let c;
+  do { c = Array.from(crypto.getRandomValues(new Uint32Array(6)), n => CODE_CHARS[n % CODE_CHARS.length]).join(""); }
+  while (S.courses.some(x=>x.code===c));
+  return c;
+}
+function renderJoinCode(){
+  const box=$("#joinCode"), c=S.mode==="teacher" ? S.courses.find(x=>x.id===S.tCourse) : null;
+  box.hidden = !c; if (!c) return;
+  $("#joinCodeVal").textContent = c.code ? fmtCode(c.code) : "Ei koodia";
+  $("#copyCode").hidden = !c.code;
+  $("#deepLink").textContent = lessonLink(c.id);
+  const nb=$("#newCode"); if (!nb.dataset.armed) nb.textContent = c.code ? "Vaihda koodi" : "Luo koodi";
+}
+$("#copyCode").addEventListener("click", () => {
+  const el=$("#joinCodeVal"), v=el.textContent;
+  const fallback = () => { const r=document.createRange(); r.selectNodeContents(el); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Koodi valittu, kopioi se näppäimillä Ctrl+C"); };
+  try { navigator.clipboard.writeText(v).then(() => toast("Koodi kopioitu"), fallback); } catch { fallback(); }
+});
+$("#newCode").addEventListener("click", async e => {
+  const b=e.currentTarget, c=S.courses.find(x=>x.id===S.tCourse);
+  if (!c || !db) return;
+  if (c.code && !b.dataset.armed){
+    b.dataset.armed="1"; b.textContent="Vahvista: vanha koodi lakkaa toimimasta";
+    setTimeout(() => { delete b.dataset.armed; renderJoinCode(); }, 5000); return;
+  }
+  delete b.dataset.armed;
+  try { await db.doc("courses/"+c.id).update({code:genCode()}); toast("Uusi koodi luotu"); } catch (err) { writeFail(err); }
+});
+/* deep link from Origo: <artifact>#oppitunti-<course id> opens the lesson space on that course */
+const ARTIFACT_URL = "https://claude.ai/artifact/W1LgNaU73LiFM77y4d4h4k";
+const lessonLink = id => `${ARTIFACT_URL}#oppitunti-${id}`;
+const courseFromHash = () => (/^#oppitunti-([A-Za-z0-9_~.-]+)$/.exec(location.hash || "") || [])[1] || null;
+let hashCourse = courseFromHash();
+function applyHashCourse(){
+  if (!hashCourse || !S.isTeacher || !S.coursesLoaded) return;
+  if (S.courses.some(c=>c.id===hashCourse)){ if (S.tCourse!==hashCourse) chooseTeacherCourse(hashCourse); setTScreen("lesson"); }
+  else toast("Linkin opintojaksoa ei löytynyt oppituntitilasta");
+  hashCourse=null;
+}
+window.addEventListener("hashchange", () => { hashCourse=courseFromHash(); applyHashCourse(); });
+$("#copyLink").addEventListener("click", () => {
+  const el=$("#deepLink"), v=el.textContent;
+  const fallback = () => { const r=document.createRange(); r.selectNodeContents(el); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Linkki valittu, kopioi se näppäimillä Ctrl+C"); };
+  try { navigator.clipboard.writeText(v).then(() => toast("Linkki kopioitu"), fallback); } catch { fallback(); }
+});
+function leaveCourse(id){
+  S.joined = S.joined.filter(x=>x!==id); save("joined", {ids:S.joined});
+  if (S.courseId===id) chooseCourse(null); else renderCourses();
+}
+$("#joinForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const code=normCode($("#joinInput").value), err=$("#joinErr");
+  err.hidden=true;
+  if (code.length!==6){ err.textContent="Koodissa on 6 merkkiä, esimerkiksi 7KQ-2XH."; err.hidden=false; return; }
+  const c=S.courses.find(x=>x.code===code);
+  if (!c){ err.textContent="Tällä koodilla ei löytynyt opintojaksoa. Tarkista koodi opettajalta."; err.hidden=false; return; }
+  $("#joinInput").value="";
+  if (!S.joined.includes(c.id)){ S.joined=[...S.joined, c.id]; save("joined", {ids:S.joined}); toast(`Liityit luokkaan ${c.name}`); }
+  S.homeCourse=c.id; store.set("origo.home", c.id);
+  renderCourses(); renderStudentHome();
+});
+function renderCourses(){
+  // students reach a course from the Origo start view's join button, so there is no picker here
+  $("#coursePick").hidden = true; $("#studentShell").hidden = S.mode!=="teacher" && !S.course;
+  if (S.mode!=="teacher" && S.sScreen==="lesson" && !S.course && S.coursesLoaded && S.joinedLoaded) setSScreen("home");
+  // students see only the courses they have joined with a code
+  const list=$("#courseList"); list.textContent="";
+  const mine = S.courses.filter(c=>S.joined.includes(c.id));
+  if (!mine.length){
+    list.innerHTML = S.coursesLoaded && S.joinedLoaded
+      ? `<div class="empty" style="grid-column:1/-1"><strong>Et ole vielä liittynyt opintojaksolle</strong>Kysy opintojakson koodi opettajalta ja kirjoita se alle.</div>`
+      : `<div class="empty" style="grid-column:1/-1"><strong>Ladataan opintojaksoja…</strong></div>`;
+  }
+  mine.forEach(c => {
+    const b=bookById(c.bookId), on=!!S.lives[c.id]?.active;
+    const item=document.createElement("div"); item.className="courseitem";
+    const btn=document.createElement("button"); btn.type="button"; btn.className="courseopt"; btn.setAttribute("aria-pressed", c.id===S.courseId);
+    btn.innerHTML=`<span class="spine" style="background:var(${b?.tone||"--muted"})">${esc(b?.mark||"–")}</span><span><b></b><small></small>${on?`<small class="livebadge">● Oppitunti käynnissä</small>`:""}</span>`;
+    btn.querySelector("b").textContent=c.name||"Nimetön opintojakso";
+    btn.querySelector("small").textContent=b?b.title:"Ei oppikirjaa";
+    btn.addEventListener("click", () => chooseCourse(c.id));
+    const leave=document.createElement("button"); leave.type="button"; leave.className="linkbtn"; leave.textContent="Poista listalta";
+    leave.addEventListener("click", () => {
+      if (leave.dataset.armed){ leaveCourse(c.id); return; }
+      leave.dataset.armed="1"; leave.textContent="Vahvista poisto";
+      setTimeout(() => { delete leave.dataset.armed; leave.textContent="Poista listalta"; }, 4000);
+    });
+    item.append(btn, leave); list.appendChild(item);
+  });
+  renderJoinCode(); renderClasses();
+  // the teacher picks the course in Origo; this header only shows which one is open
+  const bar=$("#courseBar"), tc=S.courses.find(c=>c.id===S.tCourse);
+  bar.textContent="";
+  if (!tc){
+    bar.innerHTML = `<span style="color:var(--muted)">${S.coursesLoaded ? "Avaa oppituntitila opintojakson sivulta Origossa." : "Ladataan opintojaksoa…"}</span>`;
+  } else {
+    const b=bookById(tc.bookId), n=[...S.known.values()].filter(k=>k.course===tc.id && k.status!=="gone" && k.status!=="absent").length;
+    bar.innerHTML = `<span class="spine" style="background:var(${b?.tone||"--muted"})">${esc(b?.mark||"–")}</span><div class="ch-text"><b></b><small></small></div>${S.lives[tc.id]?.active ? `<span class="pill s-active">Oppitunti käynnissä</span>` : ""}<span class="mono ch-count">${n} paikalla</span>`;
+    bar.querySelector("b").textContent = tc.name || "Nimetön opintojakso";
+    bar.querySelector("small").textContent = b ? b.title : "Ei oppikirjaa";
+  }
+  const back=document.createElement("button"); back.type="button"; back.className="btn small"; back.textContent="← Luokat";
+  back.addEventListener("click", () => setTScreen("classes"));
+  bar.prepend(back);
+  $("#delCourse").disabled = !S.tCourse;
+}
+$("#newCourseBook").innerHTML = BOOKS.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join("") + `<option value="">Ei oppikirjaa</option>`;
+$("#fCourse").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!db) return toast("Tallennus ei ole käytettävissä tässä näkymässä");
+  const name=$("#cName").value.trim(); if (!name) return;
+  try {
+    const code=genCode();
+    const ref = await db.collection("courses").add({name, bookId:$("#newCourseBook").value||null, code, createdAt:Date.now()});
+    $("#cName").value=""; $("#fCourse").hidden=true; chooseTeacherCourse(ref.id); toast(`Opintojakso ${name} luotu. Liittymiskoodi: ${fmtCode(code)}`);
+  } catch (err) { writeFail(err); }
+});
+let delArmed=false;
+$("#delCourse").addEventListener("click", async e => {
+  if (!S.tCourse || !db) return;
+  if (!delArmed){ delArmed=true; e.target.textContent=`Vahvista: poista ${S.course?.name||"opintojakso"} ja sen sisältö`; setTimeout(()=>{ delArmed=false; e.target.textContent="Poista valittu opintojakso"; }, 5000); return; }
+  delArmed=false; e.target.textContent="Poista valittu opintojakso";
+  const id=S.tCourse, name=S.course?.name||"";
+  try {
+    for (const [col, arr] of [["materials",S.allMaterials],["tasks",S.allTasks],["notes",S.allNotes]])
+      for (const it of arr.filter(x=>x.courseId===id)) await db.doc(`${col}/${it.id}`).delete();
+    await db.doc("live/"+id).delete();
+    await db.doc("courses/"+id).delete();
+    toast(`Opintojakso ${name} poistettu`);
+  } catch (err) { writeFail(err); }
+});
+
+/* ---------- own status: the student sees what the teacher sees ---------- */
+function mySubCount(){ return S.mySubs.filter(s=>s.courseId===S.courseId).length; }
+const fmtTime = t => new Date(t).toLocaleString("fi-FI",{weekday:"short", day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit"});
+const presLevel = p => p>=90 ? "good" : p>=70 ? "mid" : "low";
+const awayLevel = n => n===0 ? "good" : n<=2 ? "mid" : "low";
+const awayTotal = () => S.awayMs + (S.awayFrom ? Date.now()-S.awayFrom : 0);
+function kpi(label, value, lv="", note="", bar=null, big=false){
+  return `<div class="kpi${lv ? " lv-"+lv : ""}${big ? " big" : ""}"><span class="eyebrow">${esc(label)}</span><b>${esc(value)}</b>${bar!==null && bar!==undefined ? `<span class="bar"><i style="width:${Math.max(0,Math.min(100,bar))}%"></i></span>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</div>`;
+}
+function presenceNote(pct){ return pct>=90 ? "Olet mukana tunnilla" : pct>=70 ? "Osa tunnista poissa" : "Suuri osa tunnista poissa"; }
+function renderMyStats(){
+  const el=$("#myStats"); if (!el) return;
+  const show = S.mode!=="teacher" && !!S.course;
+  el.hidden = !show; if (!show) return;
+  const on=!!S.live?.active, pct=participation(), a=answeredCount(), awayMin=Math.round(awayTotal()/60000);
+  el.innerHTML = `<div class="mystats-head"><span class="eyebrow">Oma tilanne${on ? " · tämä oppitunti" : ""}</span><small style="color:var(--muted)">Opettaja näkee samat tiedot.</small></div>
+    <div class="kpis">
+      ${on && pct!==null ? kpi("Läsnä tunnilla", pct+" %", presLevel(pct), presenceNote(pct), pct, true) : kpi("Läsnä tunnilla", "–", "", "Ei käynnissä olevaa oppituntia", null, true)}
+      ${on ? kpi("Poistumiset", String(S.awayCount), awayLevel(S.awayCount), awayMin ? `poissa yhteensä ${awayMin} min` : "ei poissaoloaikaa", null, true) : kpi("Poistumiset", "–", "", "", null, true)}
+      ${kpi("Tehtävät", `${doneCount()}/${S.tasks.length}`)}
+      ${a ? kpi("Kirjan tehtävät", `${a.ok}/${a.total}`) : ""}
+      ${kpi("Palautukset", String(mySubCount()))}
+    </div>`;
+}
+function showLessonSummary(sl){
+  const start=S.lessonKey; if (!start) return;
+  const end=sl?.endedAt || Date.now(), span=Math.max(1, end-start);
+  const act=S.activeMs + (S.activeFrom ? end-S.activeFrom : 0);
+  if (act<=0 && !S.awayCount) return;
+  const pct=Math.min(100, Math.round(act/span*100)), awayMin=Math.round(awayTotal()/60000), a=answeredCount();
+  $("#lsTitle").textContent = "Tuntikooste: "+(sl?.title || S.course?.name || "oppitunti");
+  $("#lsKpis").innerHTML = kpi("Läsnä tunnilla", pct+" %", presLevel(pct), presenceNote(pct), pct, true)
+    + kpi("Poistumiset", String(S.awayCount), awayLevel(S.awayCount), awayMin ? `poissa yhteensä ${awayMin} min` : "ei poissaoloaikaa", null, true)
+    + kpi("Tehtävät", `${doneCount()}/${S.tasks.length}`) + (a ? kpi("Kirjan tehtävät", `${a.ok}/${a.total}`) : "") + kpi("Palautukset", String(mySubCount()));
+  $("#lsNote").textContent = pct>=90 && S.awayCount===0 ? "Olit mukana koko tunnin. Hyvää työtä!"
+    : pct<70 ? "Läsnäolosi jäi alle 70 prosenttiin. Opettaja näkee saman koosteen."
+    : `Poistuit tunnilta ${S.awayCount} kertaa. Opettaja näkee saman koosteen.`;
+  $("#lessonSum").hidden=false;
+}
+$("#lsClose").addEventListener("click", () => { $("#lessonSum").hidden=true; });
+
+/* ---------- conversations: viestit/<student id> and viestit/<student id>/m/<message> ---------- */
+const convUnreadT = c => !!(c?.viimeisin?.kuka==="oppilas" && c.viimeisin.t > (c.opettajaLuki||0));
+const convUnreadS = () => { const lr=S.conv?.oppilasLuki||0; return S.convMsgs.filter(m=>m.kuka==="opettaja" && m.t>lr).length; };
+function msgBubble(m, mine, who, receipt){
+  const d=document.createElement("div"); d.className="msg "+(mine ? "user" : "assistant")+(m.apu ? " help" : "");
+  const tx=document.createElement("div"); tx.style.whiteSpace="pre-wrap"; tx.textContent=m.teksti || "";
+  const meta=document.createElement("small"); meta.className="msgmeta";
+  meta.textContent = [who, m.apu ? "Avunpyyntö" : "", m.t ? fmtTime(m.t) : "", receipt].filter(Boolean).join(" · ");
+  d.append(tx, meta); return d;
+}
+try { $("#convNick").value = store.get("origo.nick") || ""; } catch {}
+$("#convNick").addEventListener("input", e => store.set("origo.nick", e.target.value));
+function renderConv(){
+  const n=convUnreadS(), c=$("#cConv"); c.hidden=!n; c.textContent=n; c.classList.toggle("new", n>0);
+  if (S.view!=="viestit" || S.mode==="teacher") return;
+  const box=$("#convMsgs"); box.textContent="";
+  if (!db || !uid){ box.innerHTML=`<div class="empty"><strong>Viestit eivät ole käytettävissä</strong>Avaa Origo kirjautuneena.</div>`; return; }
+  if (!S.convMsgs.length) box.innerHTML=`<div class="empty"><strong>Ei vielä viestejä</strong>Kirjoita opettajalle tai paina Pyydä apua.</div>`;
+  S.convMsgs.forEach(m => box.appendChild(msgBubble(m, m.kuka==="oppilas", m.kuka==="opettaja" ? "Opettaja" : "", m.kuka==="oppilas" ? ((S.conv?.opettajaLuki||0)>=m.t ? "Opettaja luki" : "Lähetetty") : "")));
+  box.scrollTop=box.scrollHeight;
+  markStudentRead();
+}
+let readBusyS=false;
+function markStudentRead(){
+  if (readBusyS || !db || !uid || !S.conv || !convUnreadS() || document.visibilityState!=="visible") return;
+  readBusyS=true;
+  db.doc("viestit/"+uid).update({oppilasLuki:Date.now()}).catch(()=>{}).finally(() => { readBusyS=false; });
+}
+let convBusy=false;
+async function sendConv(text, apu){
+  if (!db || !uid) return toast("Viestit vaativat kirjautumisen");
+  text = text.trim() || (apu ? "Tarvitsen apua." : "");
+  if (!text || convBusy) return;
+  convBusy=true;
+  const t=Date.now(), last={t, kuka:"oppilas", teksti:text.slice(0,1000), apu:!!apu};
+  const ref=db.doc("viestit/"+uid);
+  try {
+    await db.collection(`viestit/${uid}/m`).add(last);
+    const head={nimimerkki:$("#convNick").value.trim().slice(0,40), kurssi:S.courseId||null, viimeisin:last, oppilasLuki:t};
+    const exists = S.conv ? true : (await ref.get()).exists;
+    if (exists) await ref.update(head); else await ref.set({...head, opettajaLuki:0});
+    $("#convInput").value="";
+    toast(apu ? "Avunpyyntö lähetetty opettajalle" : "Viesti lähetetty");
+  } catch (e) { toast(e?.code==="invalid_argument" ? "Viestin lähetys ei onnistunut: sinulla ei ole tallennusoikeutta" : "Viestin lähetys ei onnistunut"); }
+  convBusy=false;
+}
+$("#convForm").addEventListener("submit", e => { e.preventDefault(); sendConv($("#convInput").value, false); });
+$("#convHelp").addEventListener("click", () => sendConv($("#convInput").value, true));
+$("#convInput").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); $("#convForm").requestSubmit(); } });
+
+let threadUnsub=null;
+function openThread(id){
+  if (!db) return;
+  if (threadUnsub) threadUnsub();
+  S.threadId=id; S.threadMsgs=[];
+  threadUnsub = db.collection(`viestit/${id}/m`).orderBy("t").limit(300).onSnapshot(s => {
+    S.threadMsgs = s.docs.map(d=>d.data()); renderThread(); markTeacherRead();
+  }, () => {});
+  renderConvList(); renderThread();
+}
+let readBusyT=false;
+function markTeacherRead(){
+  const c=S.convs[S.threadId];
+  if (readBusyT || !convUnreadT(c) || S.mode!=="teacher" || document.visibilityState!=="visible") return;
+  readBusyT=true;
+  db.doc("viestit/"+S.threadId).update({opettajaLuki:Date.now()}).catch(()=>{}).finally(() => { readBusyT=false; });
+}
+async function renderConvList(){
+  const ul=$("#convList"); if (!ul || S.mode!=="teacher") return;
+  const all=$("#convAll").checked;
+  const items = Object.entries(S.convs).filter(([,c]) => all || c.kurssi===S.tCourse).sort((a,b)=>(b[1].viimeisin?.t||0)-(a[1].viimeisin?.t||0));
+  if (S.threadId && !items.some(([id])=>id===S.threadId)) items.unshift([S.threadId, S.convs[S.threadId] || {draft:true}]);
+  const ps = await names(items.map(([id])=>id));
+  const unread = items.filter(([,c])=>convUnreadT(c)).length;
+  $("#convInfo").textContent = unread ? `${unread} lukematonta` : "";
+  const tc=$("#tabConvCount"); tc.hidden=!unread; tc.textContent=unread;
+  ul.textContent="";
+  if (!items.length){ ul.innerHTML=`<li class="empty" style="padding:20px 10px">Ei viestejä tältä opintojaksolta.</li>`; return; }
+  items.forEach(([id,c]) => {
+    const li=document.createElement("li"), b=document.createElement("button");
+    b.type="button"; b.className="convitem"+(convUnreadT(c) ? " unread" : ""); b.setAttribute("aria-current", id===S.threadId);
+    const help = convUnreadT(c) && c.viimeisin?.apu;
+    b.innerHTML = `<span class="crow"><b></b>${help ? `<span class="chip t-laksy">Pyytää apua</span>` : convUnreadT(c) ? `<span class="chip t-tehtava">Uusi</span>` : ""}</span><span class="cprev"></span><time></time>`;
+    const real=ps[id]?.name || "";
+    b.querySelector("b").textContent = (real || c.nimimerkki || "Opiskelija") + (real && c.nimimerkki && c.nimimerkki!==real ? ` (${c.nimimerkki})` : "");
+    b.querySelector(".cprev").textContent = c.draft ? "Uusi keskustelu" : (c.viimeisin?.kuka==="opettaja" ? "Sinä: " : "")+(c.viimeisin?.teksti || "");
+    b.querySelector("time").textContent = c.viimeisin?.t ? fmtTime(c.viimeisin.t) : "";
+    b.addEventListener("click", () => openThread(id));
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+async function renderThread(){
+  const box=$("#threadMsgs"); if (!box || S.mode!=="teacher") return;
+  const form=$("#threadForm");
+  if (!S.threadId){ $("#threadTitle").textContent="Keskustelu"; box.innerHTML=`<div class="empty"><strong>Valitse keskustelu</strong>Opiskelijoiden viestit ja avunpyynnöt näkyvät tässä.</div>`; form.hidden=true; return; }
+  form.hidden=false;
+  const c=S.convs[S.threadId] || {}, ps=await names([S.threadId]);
+  $("#threadTitle").textContent = ps[S.threadId]?.name || c.nimimerkki || "Opiskelija";
+  box.textContent="";
+  if (!S.threadMsgs.length){ box.innerHTML=`<div class="empty">Ei vielä viestejä. Kirjoita ensimmäinen viesti.</div>`; return; }
+  S.threadMsgs.forEach(m => box.appendChild(msgBubble(m, m.kuka==="opettaja", m.kuka==="oppilas" ? "Opiskelija" : "", m.kuka==="opettaja" ? ((c.oppilasLuki||0)>=m.t ? "Luettu" : "Lähetetty") : "")));
+  box.scrollTop=box.scrollHeight;
+}
+async function sendThread(text){
+  const id=S.threadId; text=text.trim();
+  if (!id || !db || !text) return;
+  const t=Date.now(), last={t, kuka:"opettaja", teksti:text.slice(0,1000), apu:false}, ref=db.doc("viestit/"+id);
+  try {
+    await db.collection(`viestit/${id}/m`).add(last);
+    if (S.convs[id]) await ref.update({viimeisin:last, opettajaLuki:t});
+    else await ref.set({nimimerkki:"", kurssi:S.tCourse, viimeisin:last, oppilasLuki:0, opettajaLuki:t});
+    $("#threadInput").value="";
+  } catch (err) { writeFail(err); }
+}
+$("#threadForm").addEventListener("submit", e => { e.preventDefault(); sendThread($("#threadInput").value); });
+$("#threadInput").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); $("#threadForm").requestSubmit(); } });
+$("#convAll").addEventListener("change", renderConvList);
+
+/* ---------- submissions ---------- */
+const SUB_KINDS = {doc:"Teksti", sheet:"Taulukko", slides:"Esitys"};
+function subTitle(kind){
+  if (kind==="doc") return (docPage.innerText.trim().split("\n")[0] || "Nimetön teksti").slice(0,80);
+  if (kind==="slides") return (S.slides[0]?.title || "Nimetön esitys").slice(0,80);
+  return "Taulukko";
+}
+let subBusy=false;
+async function submitWork(kind){
+  if (!db || !uid || !S.courseId) return toast("Palautus vaatii, että olet kirjautunut ja valinnut opintojakson");
+  if (subBusy) return;
+  subBusy=true;
+  const id=`${S.courseId}-${kind}`, prev=S.mySubs.find(s=>s.id===id);
+  const content = kind==="doc" ? {html:S.docHtml} : kind==="sheet" ? {cells:S.cells} : {slides:S.slides};
+  try {
+    await db.doc(`enroll/${uid}/subs/${id}`).set({courseId:S.courseId, kind, title:subTitle(kind), at:Date.now(), content, comment:prev?.comment||null, commentAt:prev?.commentAt||null});
+    toast("Palautettu opettajalle");
+  } catch (e) {
+    toast(e?.code==="invalid_argument" ? "Palautus ei onnistunut: sinulla ei ole tallennusoikeutta tähän Origoon" : "Palautus ei onnistunut. Yritä uudelleen.");
+  }
+  subBusy=false;
+}
+document.querySelectorAll("[data-submit]").forEach(b => b.addEventListener("click", () => submitWork(b.dataset.submit)));
+function renderSubInfo(){
+  for (const kind of Object.keys(SUB_KINDS)){
+    const s=S.mySubs.find(x=>x.id===`${S.courseId}-${kind}`);
+    const st=document.querySelector(`[data-substatus="${kind}"]`), info=document.querySelector(`[data-subinfo="${kind}"]`);
+    if (st) st.textContent = s ? "Palautettu "+fmtTime(s.at) : "";
+    if (info){
+      info.hidden = !s?.comment; info.textContent="";
+      if (s?.comment){ const b=document.createElement("b"); b.textContent="Opettajan kommentti: "; info.append(b, s.comment); }
+    }
+  }
+}
+let subsCtx=null;
+async function openSubs(id, name){
+  if (!id) return;
+  if (id.startsWith("demo-")) return toast("Esittelytilan opiskelijoilla ei ole oikeita palautuksia");
+  if (!db) return;
+  $("#subsTitle").textContent = "Palautukset: "+(name || "Opiskelija");
+  $("#subsList").textContent=""; $("#subsView").textContent="Ladataan…"; $("#subsComment").value="";
+  $("#subsModal").hidden=false;
+  try {
+    const snap = await db.collection(`enroll/${id}/subs`).get();
+    const subs = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(s=>s.courseId===S.tCourse).sort((a,b)=>(b.at||0)-(a.at||0));
+    subsCtx = {id, subs, sel:subs[0]?.id || null};
+    renderSubsModal();
+  } catch { $("#subsView").textContent="Palautuksia ei voitu ladata."; }
+}
+function renderSubsModal(){
+  const c=subsCtx, list=$("#subsList"), v=$("#subsView");
+  list.textContent=""; v.textContent="";
+  if (!c.subs.length){ v.textContent="Ei palautuksia tällä opintojaksolla."; return; }
+  c.subs.forEach(s => {
+    const b=document.createElement("button"); b.type="button"; b.className="cchip"; b.setAttribute("aria-pressed", s.id===c.sel);
+    b.textContent = `${SUB_KINDS[s.kind]||s.kind} · ${fmtTime(s.at)}`;
+    b.addEventListener("click", () => { c.sel=s.id; renderSubsModal(); });
+    list.appendChild(b);
+  });
+  const s=c.subs.find(x=>x.id===c.sel);
+  const h=document.createElement("h3"); h.style.cssText="font-size:18px;margin-bottom:10px"; h.textContent=s.title || SUB_KINDS[s.kind]; v.appendChild(h);
+  if (s.kind==="doc"){ const d=document.createElement("div"); d.className="prose"; d.innerHTML=cleanHtml(s.content?.html||""); v.appendChild(d); }
+  else if (s.kind==="sheet") v.appendChild(sheetTable(s.content?.cells||{}));
+  else (s.content?.slides||[]).forEach((sl,i) => {
+    const box=document.createElement("div"); box.style.marginBottom="12px";
+    const t=document.createElement("b"); t.textContent=`${i+1}. ${sl.title || "Nimetön dia"}`;
+    const ul=document.createElement("ul");
+    String(sl.body||"").split("\n").filter(l=>l.trim()).forEach(l => { const li=document.createElement("li"); li.textContent=l; ul.appendChild(li); });
+    box.append(t, ul); v.appendChild(box);
+  });
+  $("#subsComment").value = s.comment || "";
+}
+function sheetTable(cells){
+  const refs=Object.keys(cells), t=document.createElement("table");
+  if (!refs.length){ const p=document.createElement("p"); p.textContent="Tyhjä taulukko"; return p; }
+  const maxC=Math.max(...refs.map(r=>COLS.indexOf(r[0]))), maxR=Math.max(...refs.map(r=>+r.slice(1)));
+  let html=`<tr><th></th>${COLS.slice(0,maxC+1).map(c=>`<th>${c}</th>`).join("")}</tr>`;
+  for (let r=1; r<=maxR; r++) html += `<tr><th>${r}</th>${COLS.slice(0,maxC+1).map(c => { const ref=c+r; return `<td>${(cells[ref]??"")==="" ? "" : esc(fmt(cellValue(ref,new Set(),cells)))}</td>`; }).join("")}</tr>`;
+  t.innerHTML=html; return t;
+}
+$("#subsClose").addEventListener("click", () => { $("#subsModal").hidden=true; subsCtx=null; });
+$("#subsSave").addEventListener("click", async () => {
+  const c=subsCtx; if (!c?.sel || !db) return;
+  const comment=$("#subsComment").value.trim();
+  try {
+    await db.doc(`enroll/${c.id}/subs/${c.sel}`).update({comment:comment||null, commentAt:Date.now()});
+    c.subs.find(x=>x.id===c.sel).comment = comment; toast("Kommentti tallennettu");
+  } catch (err) { writeFail(err); }
+});
+
+/* ---------- messages from teacher ---------- */
+function updateMsgTo(rows, ps){
+  const sel=$("#msgTo"), cur=sel.value;
+  sel.textContent="";
+  const all=document.createElement("option"); all.value=""; all.textContent="Koko ryhmä"; sel.appendChild(all);
+  rows.filter(r=>r.id && r.status!=="absent" && r.status!=="gone").forEach((r,i) => {
+    const o=document.createElement("option"); o.value=r.id; o.textContent=ps[r.id]?.name || `Opiskelija ${i+1}`; sel.appendChild(o);
+  });
+  sel.value = [...sel.options].some(o=>o.value===cur) ? cur : "";
+}
+async function sendMsg(text, look){
+  const to=$("#msgTo").value || null;
+  if (!text) return;
+  if (!S.tCourse) return toast("Valitse ensin opintojakso");
+  if (to && to.startsWith("demo-")){ addLog(to, `sai viestin: "${text}" (simulaatio)`, "ok", false, S.tCourse); return toast("Viesti lähetetty (simulaatio)"); }
+  if (!room) return toast("Reaaliaikainen yhteys ei ole käytettävissä");
+  try {
+    await room.emit("msg", {course:S.tCourse, to, text:text.slice(0,300), look:!!look});
+    addLog(to, `sai viestin: "${text}"`, "ok", false, S.tCourse); toast("Viesti lähetetty");
+  } catch (e) { toast(e?.code==="not_permitted" ? "Vain muokkausoikeudellinen opettaja voi lähettää viestejä" : "Viestin lähetys ei onnistunut"); }
+}
+$("#msgForm").addEventListener("submit", e => { e.preventDefault(); const i=$("#msgText"); sendMsg(i.value.trim()); i.value=""; });
+$("#lookBtn").addEventListener("click", () => sendMsg("Katse opettajaan", true));
+function onMsg(m){
+  const d=m?.data || {};
+  if (m.isMe || S.mode==="teacher") return;
+  if (d.course!==S.courseId || (d.to && d.to!==uid)) return;
+  $("#msgCard").classList.toggle("look", !!d.look);
+  $("#msgHead").textContent = d.look ? "Opettaja pyytää huomiota" : "Viesti opettajalta";
+  $("#msgText2").textContent = String(d.text||"").slice(0,300);
+  $("#msgBox").hidden=false; $("#msgOk").focus();
+}
+$("#msgOk").addEventListener("click", () => { $("#msgBox").hidden=true; });
+
+/* ---------- lesson reports ---------- */
+async function saveReport(cid, lesson){
+  if (!db || !cid) return;
+  const rows = rosterRows(cid).filter(r=>r.id).map(r => ({id:r.id, status:r.status, pct:r.pct ?? null, away:r.away ?? 0, awayMs:r.awayMs ?? null, done:r.done ?? null, tt:r.tt ?? null, ok:r.ok ?? null, total:r.total ?? null, subs:r.subs ?? 0}));
+  try { await db.collection("reports").add({courseId:cid, title:lesson.title || "", startedAt:lesson.startedAt || null, endedAt:lesson.endedAt, rows}); }
+  catch (err) { writeFail(err); }
+}
+const openReports = new Set();
+async function renderReports(){
+  const ul=$("#reportList"); if (!ul) return;
+  const reps = S.reports.filter(r=>r.courseId===S.tCourse).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
+  $("#reportEmpty").hidden = reps.length>0;
+  const ps = await names(reps.filter(r=>openReports.has(r.id)).flatMap(r=>(r.rows||[]).map(x=>x.id)));
+  ul.textContent="";
+  reps.forEach(rep => {
+    const rows=rep.rows || [], present=rows.filter(x=>x.status!=="absent"), pcts=present.map(x=>x.pct).filter(x=>typeof x==="number");
+    const avg = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+    const time = rep.startedAt ? `${fmtTime(rep.startedAt)}–${new Date(rep.endedAt).toLocaleTimeString("fi-FI",{hour:"2-digit",minute:"2-digit"})}` : fmtTime(rep.endedAt);
+    const li=document.createElement("li");
+    li.innerHTML = `<div class="rhead"><span><b></b> <span class="sub"></span></span><button class="btn small" type="button"></button></div>`;
+    li.querySelector("b").textContent = rep.title || "Oppitunti";
+    li.querySelector(".sub").textContent = `· ${time} · ${present.length} paikalla · läsnä keskimäärin ${avg===null ? "–" : avg+" %"} · poistumisia ${rows.reduce((a,x)=>a+(x.away||0),0)}`;
+    const btn=li.querySelector("button"), open=openReports.has(rep.id);
+    btn.textContent = open ? "Piilota" : "Näytä";
+    btn.addEventListener("click", () => { open ? openReports.delete(rep.id) : openReports.add(rep.id); renderReports(); });
+    if (open){
+      const flagged = new Set(rows.filter(x=>x.status!=="absent" && ((typeof x.pct==="number" && x.pct<70) || (x.away||0)>=3)));
+      const totalAway = rows.reduce((a,x)=>a+(x.away||0),0);
+      const perStudent = present.length ? totalAway/present.length : 0;
+      const kp=document.createElement("div"); kp.className="kpis"; kp.style.margin="12px 0";
+      kp.innerHTML = kpi("Läsnä keskimäärin", avg===null ? "–" : avg+" %", avg===null ? "" : presLevel(avg), `${present.length}/${rows.length} opiskelijaa paikalla`, avg, true)
+        + kpi("Poistumisia yhteensä", String(totalAway), perStudent<.5 ? "good" : perStudent<1.5 ? "mid" : "low", `keskimäärin ${perStudent.toFixed(1).replace(".",",")} / opiskelija`, null, true)
+        + kpi("Huomioitavat", String(flagged.size), flagged.size ? "low" : "good", "läsnä alle 70 % tai vähintään 3 poistumista", null, true);
+      li.appendChild(kp);
+      const wrap=document.createElement("div"); wrap.className="tablewrap";
+      const t=document.createElement("table"); t.className="roster";
+      t.innerHTML = `<thead><tr><th>Opiskelija</th><th>Läsnä</th><th>Poistumiset</th><th>Poissa</th><th>Tehtävät</th><th>Kirjan tehtävät</th><th>Palautukset</th></tr></thead><tbody></tbody>`;
+      const order = x => x.status==="absent" ? 2 : flagged.has(x) ? 0 : 1;
+      rows.slice().sort((a,b)=>order(a)-order(b) || String(ps[a.id]?.name||"~").localeCompare(String(ps[b.id]?.name||"~"),"fi")).forEach((x,i) => {
+        const tr=document.createElement("tr"); if (flagged.has(x)) tr.className="alert";
+        const absent = x.status==="absent", pl = typeof x.pct==="number" ? presLevel(x.pct) : "";
+        tr.innerHTML = `<td></td>
+          <td class="mono lv-${absent ? "" : pl}">${absent ? "ei paikalla" : `<span class="bar"><i style="width:${x.pct ?? 0}%"></i></span><span class="lvchip">${x.pct ?? "–"} %</span>`}</td>
+          <td class="mono lv-${absent ? "" : awayLevel(x.away||0)}">${absent ? "–" : `<span class="lvchip">${x.away ?? 0}</span>`}</td>
+          <td class="mono">${x.awayMs>=60000 ? Math.round(x.awayMs/60000)+" min" : absent ? "–" : "alle 1 min"}</td>
+          <td class="mono">${x.done ?? "–"}/${x.tt ?? "–"}</td><td class="mono">${x.ok ?? "–"}/${x.total ?? "–"}</td><td class="mono">${x.subs ?? 0}</td>`;
+        tr.firstChild.textContent = ps[x.id]?.name || `Opiskelija ${i+1}`;
+        t.querySelector("tbody").appendChild(tr);
+      });
+      wrap.appendChild(t); li.appendChild(wrap);
+    }
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- demo mode: a simulated class, clearly labelled ---------- */
+const DEMO_NAMES = ["Aada Hämäläinen","Aleksi Koskinen","Amanda Laaksonen","Eemil Heikkinen","Elsa Järvinen","Emil Mäkelä","Helmi Lehtonen","Ilona Salminen","Jere Turunen","Julia Kinnunen","Kasper Lindholm","Lauri Hakala","Lotta Rantanen","Matias Nurmi","Milla Karjalainen","Niko Saarinen","Oona Leinonen","Otto Peltonen","Pinja Vainio","Roope Kallio","Sanni Heinonen","Topias Ahonen","Venla Laine","Vilma Mattila"];
+let demoTimer=0;
+const demoApp = () => (S.course?.allowed || [])[0]?.name || "TI-Nspire CX CAS";
+function startDemo(){
+  if (!S.tCourse) return toast("Valitse ensin opintojakso");
+  const b=bookById(S.course?.bookId), tt=S.tasks.length || 3, total=b ? exTotal(b) : 10, now=Date.now();
+  const rnd = n => Math.floor(Math.random()*n);
+  DEMO_NAMES.forEach((n,i) => {
+    const status = i===4||i===15 ? "allowed" : i===9 ? "lobby" : i===20 ? "absent" : "active";
+    S.known.set("demo-"+i, {id:"demo-"+i, course:S.tCourse, status, since:now-rnd(600000), away:0, awayMs:0,
+      pct:72+rnd(29), lastAct:now-rnd(90000), done:rnd(tt+1), tt, ok:rnd(total+1), total, subs:rnd(3)===0 ? 1 : 0,
+      app: status==="allowed" ? demoApp() : null, seen: now-86400000});
+    const e=S.known.get("demo-"+i);
+    if (status!=="absent" && rnd(3)===0){ e.away=1+rnd(2); e.awayMs=40000+rnd(200000); }
+    if (i===7){ e.away=4; e.awayMs=540000; e.pct=58; }
+  });
+  S.demoOn=true; clearInterval(demoTimer); demoTimer=setInterval(demoTick, 3500);
+  renderDemoState(); renderRoster(); renderCourses();
+}
+function stopDemo(){
+  clearInterval(demoTimer); S.demoOn=false;
+  for (const k of [...S.known.keys()]) if (k.startsWith("demo-")) S.known.delete(k);
+  S.log = S.log.filter(l=>!String(l.id||"").startsWith("demo-"));
+  renderDemoState(); renderRoster(); renderLog(); renderCourses();
+}
+function demoTick(){
+  const keys=[...S.known.keys()].filter(k=>k.startsWith("demo-")), now=Date.now();
+  for (let n=0; n<2; n++){
+    const k=keys[Math.floor(Math.random()*keys.length)], cur=S.known.get(k);
+    if (!cur || cur.status==="absent") continue;
+    const r=Math.random(); let next=cur.status;
+    if (cur.status==="active") next = r<.1 ? "away" : r<.15 ? "nofs" : r<.27 ? "allowed" : "active";
+    else if (cur.status==="away" || cur.status==="nofs") next = r<.5 ? "active" : cur.status;
+    else if (cur.status==="allowed") next = r<.35 ? "active" : "allowed";
+    else if (cur.status==="lobby") next = r<.3 ? "active" : "lobby";
+    const upd={...cur, lastAct:now};
+    if (Math.random()<.3 && upd.done<upd.tt) upd.done++;
+    if (Math.random()<.4 && upd.ok<upd.total) upd.ok++;
+    if (next!==cur.status){
+      Object.assign(upd, {status:next, since:now, app: next==="allowed" ? demoApp() : null});
+      if (next==="away" || next==="nofs") upd.away++;
+      if (cur.status==="away" || cur.status==="nofs") upd.awayMs = (upd.awayMs||0) + (now-cur.since);
+      S.known.set(k, upd);
+      logChange(upd.id, next, cur.status, upd.course, upd.app, k, now, cur.since);
+    } else S.known.set(k, upd);
+  }
+  renderRoster(); renderCourses();
+}
+function renderDemoState(){
+  const b=$("#demoBtn"); b.setAttribute("aria-pressed", S.demoOn); b.textContent = "Esittelytila: "+(S.demoOn ? "päällä" : "pois");
+  $("#demoNote").hidden = !S.demoOn;
+}
+$("#demoBtn").addEventListener("click", () => S.demoOn ? stopDemo() : startDemo());
+
+/* ---------- teacher start view (Origo-style "Luokat"); the lesson space opens from its button ---------- */
+S.tScreen = hashCourse ? "lesson" : "classes";
+S.oTab = "yleis";
+const ICON = {
+  people:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7.5" cy="7" r="3"/><path d="M2.5 16.5a5 5 0 0 1 10 0M13 4.3a3 3 0 0 1 0 5.4M15 12a5 5 0 0 1 2.5 4.5"/></svg>`,
+  check:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 5.5l1.5 1.5L7 4.5M3 11l1.5 1.5L7 10M10 6h7M10 11.5h7M4 16h13"/></svg>`,
+  send:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M17.5 2.5 2.5 9l6 2.5 2.5 6z"/><path d="m8.5 11.5 9-9"/></svg>`,
+  play:`<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>`
+};
+const courseTag = c => (String(c?.name || "").split(/[\s·]+/)[0] || "").slice(0,6).toUpperCase();
+const enrolledRows = cid => Object.entries(S.enroll).filter(([u,d]) => u!==uid && d?.courses?.[cid]).map(([u,d]) => ({id:u, ...d.courses[cid]}));
+function setTScreen(s){
+  S.tScreen=s;
+  syncOpen();
+  if (S.mode==="teacher" && s==="classes") renderClasses();
+  window.scrollTo(0,0);
+}
+function syncOpen(){
+  const t = S.mode==="teacher" && S.tScreen==="classes", st = S.mode!=="teacher" && S.sScreen==="home";
+  $("#classScreen").hidden = !t; $("#studentHome").hidden = !st;
+  document.documentElement.classList.toggle("o-open", t || st);
+}
+
+/* ---------- student start view (Origo-style "Kurssikirjat"); a live lesson appears as a join button ---------- */
+S.sScreen = "home";
+S.homeCourse = store.get("origo.home") || null;
+let prevLive = null;
+const liveJoined = () => S.courses.filter(c => S.joined.includes(c.id) && S.lives[c.id]?.active);
+function setSScreen(s){
+  S.sScreen=s; syncOpen();
+  if (S.mode!=="teacher" && s==="home") renderStudentHome();
+  window.scrollTo(0,0);
+}
+function joinLesson(id){
+  chooseCourse(id);
+  S.sScreen="lesson"; syncOpen(); setView("book"); window.scrollTo(0,0);
+  enterLock();   // still inside the click, so fullscreen is allowed
+}
+function renderStudentHome(){
+  if (S.mode==="teacher" || S.sScreen!=="home") return;
+  const ready = S.coursesLoaded && S.joinedLoaded;
+  const mine = S.courses.filter(c => S.joined.includes(c.id));
+  const live = liveJoined(), box=$("#sJoinLesson");
+  box.textContent="";
+  live.forEach(c => {
+    const b=document.createElement("button"); b.type="button"; b.className="o-joinbtn";
+    b.innerHTML = `<span class="dot" aria-hidden="true"></span><span><span class="t"></span><small></small></span>`;
+    b.querySelector(".t").textContent = "Liity oppitunnille: "+(c.name || "luokka");
+    let topic = String(S.lives[c.id]?.title || "");
+    if (topic.startsWith(c.name||"")) topic = topic.slice((c.name||"").length).replace(/^\s*·\s*/, "");
+    b.querySelector("small").textContent = topic ? "Aihe: "+topic : "Opettaja aloitti oppitunnin";
+    b.addEventListener("click", () => joinLesson(c.id));
+    box.appendChild(b);
+  });
+  if (!ready) prevLive=null;
+  else {
+    if (prevLive && live.some(c => !prevLive.includes(c.id))) toast("Opettaja aloitti oppitunnin. Liity vasemmasta reunasta.");
+    prevLive = live.map(c=>c.id);
+  }
+  if (!mine.some(c=>c.id===S.homeCourse)) S.homeCourse = mine[0]?.id || null;
+  const sel=$("#sClass"); sel.textContent="";
+  mine.forEach(c => { const o=document.createElement("option"); o.value=c.id; o.textContent=c.name || "Nimetön luokka"; sel.appendChild(o); });
+  sel.value = S.homeCourse || ""; sel.hidden = !mine.length; $("#sLeave").hidden = !mine.length;
+  $("#sTeacher").hidden = !S.isTeacher;
+  const hc=mine.find(c=>c.id===S.homeCourse), b=hc ? bookById(hc.bookId) : null;
+  const short = b ? b.title.replace(/^Origo\s+/, "") : "";
+  $("#sBookTitle").textContent = b ? short : (mine.length ? "Ei kurssikirjaa" : (ready ? "Tervetuloa Origoon" : "Ladataan…"));
+  $("#sCrumb").textContent = short.split(" ")[0] || "";
+  const ch=$("#sChapters"); ch.textContent="";
+  if (ready && !mine.length) ch.innerHTML = `<p class="o-muted">Et ole vielä liittynyt luokkaan. Kysy liittymiskoodi opettajalta ja kirjoita se yllä olevaan kenttään.</p>`;
+  (b?.chapters || []).forEach((c,i) => {
+    const btn=document.createElement("button"); btn.type="button"; btn.className="o-chapter";
+    btn.innerHTML = `<span><span class="t"></span><small></small></span>`;
+    btn.querySelector(".t").textContent = `${i+1}. ${c.title}`;
+    btn.querySelector("small").textContent = `${c.ex.length} tehtävää`;
+    btn.addEventListener("click", () => toast("Kirjan selaaminen kuuluu Origoon. Oppitunnilla kirja aukeaa oppituntitilassa."));
+    ch.appendChild(btn);
+  });
+}
+$("#sClass").addEventListener("change", e => { S.homeCourse=e.target.value; store.set("origo.home", S.homeCourse); renderStudentHome(); });
+$("#sTeacher").addEventListener("click", () => setMode("teacher"));
+$("#sLeave").addEventListener("click", e => {
+  const b=e.currentTarget;
+  if (!S.homeCourse) return;
+  if (!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Vahvista: poistu luokasta"; setTimeout(() => { delete b.dataset.armed; b.textContent="Poistu valitusta luokasta"; }, 4000); return; }
+  delete b.dataset.armed; b.textContent="Poistu valitusta luokasta";
+  leaveCourse(S.homeCourse);
+});
+async function renderClasses(){
+  if (S.mode!=="teacher" || S.tScreen!=="classes") return;
+  const tc=S.courses.find(c=>c.id===S.tCourse);
+  const list=$("#oList"); list.textContent="";
+  if (!S.courses.length) list.innerHTML = `<p class="o-muted">${S.coursesLoaded ? "Ei vielä luokkia. Luo ensimmäinen luokka." : "Ladataan luokkia…"}</p>`;
+  S.courses.forEach(c => {
+    const row=document.createElement("button"); row.type="button"; row.className="o-row"; row.setAttribute("aria-current", c.id===S.tCourse);
+    row.innerHTML = `<span class="o-cover"></span><span class="o-rowcard"><span><b></b><small></small>${S.lives[c.id]?.active ? `<span class="o-live">● Oppitunti käynnissä</span>` : ""}</span><span class="o-cnt">${ICON.people}<span></span></span></span>`;
+    row.querySelector(".o-cover").textContent = courseTag(c);
+    row.querySelector("b").textContent = c.name || "Nimetön luokka";
+    row.querySelector("small").textContent = bookById(c.bookId)?.title.replace(/^Origo\s+/, "") || "Ei kurssikirjaa";
+    row.querySelector(".o-cnt span").textContent = enrolledRows(c.id).length;
+    row.addEventListener("click", () => chooseTeacherCourse(c.id));
+    list.appendChild(row);
+  });
+  $("#oDetail").classList.toggle("is-empty", !tc);
+  $("#oCrumb").textContent = tc?.name || "";
+  if (!tc) return;
+  const b=bookById(tc.bookId), on=!!S.lives[tc.id]?.active, rows=enrolledRows(tc.id);
+  $("#oCover").textContent = courseTag(tc);
+  $("#oName").textContent = tc.name || "Nimetön luokka";
+  $("#oSub").textContent = b ? b.title : "Ei kurssikirjaa";
+  $("#oStart").innerHTML = ICON.play + (on ? "Siirry käynnissä olevalle oppitunnille" : "Aloita oppitunti");
+  document.querySelectorAll("[data-otab]").forEach(x => x.setAttribute("aria-selected", x.dataset.otab===S.oTab));
+  document.querySelectorAll("[data-opane]").forEach(p => { p.hidden = p.dataset.opane!==S.oTab; });
+  const sum = k => rows.reduce((a,r)=>a+(r[k]||0), 0);
+  $("#oKpis").innerHTML = [["check","Tehtäviä tehty", sum("done")+sum("ok")], ["send","Palautuksia", sum("subs")], ["people","Opiskelijoita", rows.length]]
+    .map(([i,l,v]) => `<div class="o-kpi"><small>${ICON[i]}${l}</small><b>${v}</b></div>`).join("");
+  $("#oTopics").innerHTML = b
+    ? `<thead><tr><th>Aihe</th><th class="num">Tehtäviä</th><th class="num">Osaaminen</th></tr></thead><tbody>${b.chapters.map((c,i) =>
+        `<tr class="grp"><td>${i+1}. ${esc(c.title)}</td><td class="num">${c.ex.length}</td><td class="num">–</td></tr>` +
+        c.ex.map((x,n) => `<tr><td><span class="o-muted" style="font-family:Nunito,sans-serif;margin-right:14px">${i+1}.${n+1}</span>${esc(x.q)}</td><td class="num"></td><td class="num">–</td></tr>`).join("")).join("")}</tbody>`
+    : `<tbody><tr><td class="small">Valitse luokalle kurssikirja Kurssikirjat-välilehdeltä.</td></tr></tbody>`;
+  if (S.oTab==="opiskelijat"){
+    const t=$("#oStudents");
+    if (!rows.length){ t.innerHTML = `<tbody><tr><td class="small">Kukaan ei ole vielä liittynyt. Anna opiskelijoille liittymiskoodi Liittyminen-välilehdeltä.</td></tr></tbody>`; return; }
+    const ps = await names(rows.map(r=>r.id));
+    t.innerHTML = `<thead><tr><th>Opiskelija</th><th class="num">Tehtävät</th><th class="num">Kirjan tehtävät</th><th class="num">Palautukset</th><th>Viimeksi</th></tr></thead><tbody></tbody>`;
+    rows.sort((a,z)=>String(ps[a.id]?.name||"~").localeCompare(String(ps[z.id]?.name||"~"),"fi")).forEach((r,i) => {
+      const tr=document.createElement("tr");
+      tr.innerHTML = `<td></td><td class="num small">${r.done ?? 0}/${r.taskTotal ?? 0}</td><td class="num small">${r.ok ?? 0}/${r.exTotal ?? 0}</td><td class="num small">${r.subs ?? 0}</td><td class="small">${r.seen ? fmtTime(r.seen) : "–"}</td>`;
+      tr.firstChild.textContent = ps[r.id]?.name || `Opiskelija ${i+1}`;
+      t.querySelector("tbody").appendChild(tr);
+    });
+  }
+}
+document.querySelectorAll("[data-otab]").forEach(b => b.addEventListener("click", () => { S.oTab=b.dataset.otab; renderClasses(); }));
+$("#oNew").addEventListener("click", () => { const f=$("#fCourse"); f.hidden=!f.hidden; if (!f.hidden) $("#cName").focus(); });
+$("#oStart").addEventListener("click", () => { if (S.tCourse) setTScreen("lesson"); });
+$("#oStudent").addEventListener("click", () => setMode("student"));
+document.querySelectorAll("[data-oinert]").forEach(b => b.addEventListener("click", () => toast("Tämä Origon osa ei kuulu konseptiesittelyyn")));
+
+/* ---------- teacher tabs ---------- */
+function setTTab(t){
+  document.querySelectorAll("[data-ttab]").forEach(b => b.setAttribute("aria-selected", b.dataset.ttab===t));
+  document.querySelectorAll("[data-tpane]").forEach(p => { p.hidden = p.dataset.tpane!==t; });
+  store.set("origo.ttab", t);
+}
+document.querySelectorAll("[data-ttab]").forEach(b => b.addEventListener("click", () => setTTab(b.dataset.ttab)));
+setTTab(["luokka","viestit","sisalto","raportit"].includes(store.get("origo.ttab")) ? store.get("origo.ttab") : "luokka");
+
+/* ---------- demo bar ---------- */
+function renderDemoBar(){
+  $("#dbTeacher").setAttribute("aria-pressed", S.mode==="teacher");
+  $("#dbStudent").setAttribute("aria-pressed", S.mode!=="teacher");
+  $("#dbTeacher").disabled = !S.isTeacher;
+  $("#dbTeacher").title = S.isTeacher ? "" : "Opettajan näkymä vaatii muokkausoikeuden tähän Origoon";
+  $("#demoBarNote").textContent = S.isTeacher ? "Vaihda näkymää esittelyä varten" : "Opettajan näkymä vaatii muokkausoikeuden";
+}
+$("#dbTeacher").addEventListener("click", () => { if (S.isTeacher && S.mode!=="teacher") setMode("teacher"); });
+$("#dbStudent").addEventListener("click", () => { if (S.mode!=="student") setMode("student"); });
+
+/* ---------- role switch ---------- */
+function setMode(m){
+  S.mode=m;
+  if (m!=="teacher") $("#alerts").textContent="";
+  $("#teacherView").hidden = m!=="teacher"; $("#studentView").hidden = m==="teacher";
+  $("#roleTeacher").setAttribute("aria-pressed", m==="teacher"); $("#roleStudent").setAttribute("aria-pressed", m!=="teacher");
+  if (m==="teacher" && S.locked) leaveLock();
+  syncDerived(); renderAll();
+  setTScreen(S.tScreen); setSScreen(S.sScreen);
+  renderDemoBar();
+}
+$("#roleTeacher").addEventListener("click", () => setMode("teacher"));
+$("#roleStudent").addEventListener("click", () => setMode("student"));
+
+function renderAll(){
+  renderHeader(); renderStatus(); renderCourses(); renderAllowedRail(); renderBook(); renderMaterials(); renderTasks(); renderNotes();
+  renderSubInfo(); renderMyStats(); renderConv(); renderStudentHome();
+  if (S.view==="ai") renderChat();
+  if (S.mode==="teacher"){ renderLiveForm(); renderBookPicker(); renderAllowedAdmin(); renderManage(); renderRoster(); renderLog(); renderReports(); renderConvList(); renderThread(); }
+}
+
+/* ---------- boot ---------- */
+const savedView = store.get("origo.view");
+setView(VIEWS[savedView] ? savedView : "book");
+loadDoc();
+syncDerived();
+renderAll();
+syncOpen();
+renderDemoBar();
+
+(async () => {
+  const c = window.claude;
+  if (!c?.use) { $("#connInfo").textContent = "Ei yhteyttä"; S.coursesLoaded=true; S.joinedLoaded=true; syncDerived(); renderAll(); return; }
+  [db, user, room, sample] = await Promise.all(["db","user","room","sample"].map(n => c.use(n).catch(()=>null)));
+  if (user){ S.isTeacher = await user.canEdit(); uid = await user.id(); }
+  if (S.isTeacher) setMode("teacher");
+  renderDemoBar();
+
+  if (db){
+    const sub = (col, key) => db.collection(col).onSnapshot(s => { S[key]=s.docs.map(d=>({id:d.id, ...d.data()})); syncDerived(); renderAll(); writeEnroll(); }, e => console.warn(col, e));
+    sub("materials","allMaterials"); sub("tasks","allTasks"); sub("notes","allNotes");
+    db.collection("courses").onSnapshot(s => {
+      S.courses = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"fi"));
+      S.coursesLoaded = true; syncDerived(); renderAll(); pushPresence(); writeEnroll(); applyHashCourse();
+    }, e => { console.warn("courses", e); S.coursesLoaded=true; renderAll(); });
+    db.collection("live").onSnapshot(s => {
+      S.lives = Object.fromEntries(s.docs.map(d=>[d.id, d.data()]));
+      syncDerived(); renderAll(); pushPresence();
+    }, e => console.warn("live", e));
+    if (S.isTeacher){
+      db.collection("enroll").onSnapshot(s => {
+        S.enroll = Object.fromEntries(s.docs.map(d=>[d.id, d.data()]));
+        rebuildKnown();
+      }, e => console.warn("enroll", e));
+      let convsInit=false;
+      db.collection("viestit").onSnapshot(s => {
+        const prev=S.convs;
+        S.convs = Object.fromEntries(s.docs.map(d=>[d.id, d.data()]));
+        if (convsInit) for (const [id,c] of Object.entries(S.convs)){
+          const v=c.viimeisin;
+          if (v?.kuka==="oppilas" && v.t > (prev[id]?.viimeisin?.t||0))
+            notify(id, (v.apu ? "pyytää apua: " : "lähetti viestin: ")+String(v.teksti||"").slice(0,80), v.apu ? "warn" : "msg");
+        }
+        convsInit=true;
+        renderConvList(); renderRoster();
+        if (S.threadId){ renderThread(); markTeacherRead(); }
+      }, e => console.warn("viestit", e));
+      db.collection("reports").onSnapshot(s => {
+        S.reports = s.docs.map(d=>({id:d.id, ...d.data()}));
+        renderReports();
+      }, e => console.warn("reports", e));
+    }
+    if (!uid){ S.joinedLoaded=true; syncDerived(); renderAll(); }
+    if (uid){
+      const load = async (name, apply) => { try { const s=await db.doc(`data/users/${uid}/${name}`).get(); if (s.exists){ apply(s.data()); store.set("origo."+name, s.data()); } } catch {} };
+      await Promise.all([
+        load("progress", d => { S.done = {...(d.done||{})}; }),
+        load("answers", d => { S.answers = {...(d.answers||{})}; }),
+        load("document", d => { if (document.activeElement!==docPage){ S.docHtml = d.html||""; loadDoc(); } }),
+        load("sheet", d => { S.cells = {...(d.cells||{})}; }),
+        load("slides", d => { if (Array.isArray(d.slides) && d.slides.length) S.slides = d.slides; }),
+        load("joined", d => { S.joined = Array.isArray(d.ids) ? [...d.ids] : []; })
+      ]);
+      S.joinedLoaded = true; syncDerived();
+      renderAll(); if (S.view==="sheet") renderSheet(); if (S.view==="slides") renderSlides();
+      if (!S.isTeacher){
+        try { const s=await db.doc("enroll/"+uid).get(); if (s.exists) S.myEnroll = {...(s.data().courses||{})}; } catch {}
+        S.enrollLoaded = true; writeEnroll(true);
+        db.doc("viestit/"+uid).onSnapshot(s => { S.conv = s.exists ? s.data() : null; renderConv(); }, () => {});
+        let convLoaded=false;
+        db.collection(`viestit/${uid}/m`).orderBy("t").limit(300).onSnapshot(s => {
+          const prevT = S.convMsgs.length ? S.convMsgs[S.convMsgs.length-1].t : 0;
+          S.convMsgs = s.docs.map(d=>d.data());
+          if (convLoaded && S.view!=="viestit" && S.convMsgs.some(m=>m.kuka==="opettaja" && m.t>prevT)) toast("Uusi viesti opettajalta");
+          convLoaded=true; renderConv();
+        }, () => {});
+        db.collection(`enroll/${uid}/subs`).onSnapshot(s => {
+          S.mySubs = s.docs.map(d=>({id:d.id, ...d.data()}));
+          renderSubInfo(); renderMyStats(); writeEnroll(); pushPresence();
+        }, () => {});
+      }
+    }
+  }
+
+  if (room){
+    room.onPeers(onPeers, () => { $("#connInfo").textContent = "Reaaliaikainen yhteys ei käytettävissä"; });
+    room.onConnection(ok => { $("#connInfo").textContent = ok ? "Reaaliaikainen · päivittyy heti" : "Yhdistetään…"; });
+    room.on("msg", onMsg, () => {});
+    pushPresence();
+  } else {
+    $("#connInfo").textContent = "Reaaliaikainen yhteys ei käytettävissä";
+  }
+  if (S.view==="ai") renderChat();
+})();
+})();
+</script>
+
+</body>
+</html>
